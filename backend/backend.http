@@ -1,4 +1,4 @@
-@backend_HostAddress = http://localhost:5224
+@backend_HostAddress = http://localhost:{{$dotenv BACKEND_PORT}}
 
 GET {{backend_HostAddress}}/weatherforecast/
 Accept: application/json
