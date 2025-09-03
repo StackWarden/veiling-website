@@ -1,6 +1,3 @@
-# veiling-website
-veiling website.
-
 ## General
 Copy .env.example, rename the copy to .env and change the variables inside as you want them.
 
