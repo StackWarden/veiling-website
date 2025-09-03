@@ -1,8 +1,10 @@
+import ExampleComponent from "@/components/exampleComponent";
+
 export default function Home() {
   return (
     <div>
       <main>
-        <p>Hello</p>
+        <ExampleComponent />
       </main>
     </div>
   );
