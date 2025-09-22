@@ -1,11 +1,13 @@
 import ExampleComponent from "@/components/exampleComponent";
+import Navbar from "@/components/nav";
+import Test from "@/components/test";
 
 export default function Home() {
   return (
     <div>
-      <main>
-        <ExampleComponent />
-      </main>
+      <Navbar />
+      <Test />
+      <ExampleComponent />
     </div>
   );
 }
