@@ -8,7 +8,7 @@ export default function Test() {
     if (session?.user.role === null) {
         return (
             <div>
-                <p>You don't have any role</p>
+                <p>You don&apos;t have any role</p>
             </div>
         )
     } else if (session?.user.role === "user") {
