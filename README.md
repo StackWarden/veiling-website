@@ -13,3 +13,7 @@ Following this, run `npm run dev` to run the local environment.
 Install [dotnet](https://dotnet.microsoft.com/en-us/download) (dotnet9)
 
 To run the backend go to the `/backend` folder and run `dotnet run`.
+
+## Database
+
+Run db with `docker compose up`
