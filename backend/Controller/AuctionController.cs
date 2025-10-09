@@ -19,7 +19,7 @@ public class AuctionController : Controller
     [HttpGet]
     public IActionResult GetAllAuctions()
     {
-        var auctions = _db.Auctions.Include(a => a.Seller).ToList();
+        var auctions = _db.Auctions.ToList();
         return Ok(auctions);
     }
 
@@ -27,7 +27,7 @@ public class AuctionController : Controller
     [HttpGet("{id}")]
     public IActionResult GetAuctionById(Guid id)
     {
-        var auction = _db.Auctions.Include(a => a.Seller).FirstOrDefault(a => a.Id == id);
+        var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);
         if (auction == null)
             return NotFound("Auction not found.");
 
@@ -36,55 +36,47 @@ public class AuctionController : Controller
 
     // POST: /auctions
     [HttpPost]
-    [IgnoreAntiforgeryToken] // Dit moet weg zodra JWT is geimplementeerd
-    public IActionResult CreateAuction([FromForm] CreateAuctionDto dto)
+    [IgnoreAntiforgeryToken]
+    public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
     {
-        // Validatie
-        if (string.IsNullOrWhiteSpace(dto.Title) || dto.StartingPrice <= 0 || dto.EndTime <= DateTime.UtcNow)
-            return BadRequest("Invalid auction data.");
-
-        var auctioneer = _db.Users.FirstOrDefault(u => u.Id == dto.AuctionneerId);
-        if (auctioneer == null)
-            return BadRequest("Auctioneer not found.");
+        if (dto.EndTime <= dto.StartTime)
+            return BadRequest("End time must be after start time.");
 
         var auction = new Auction
         {
             Id = Guid.NewGuid(),
-            Title = dto.Title,
-            Description = dto.Description,
+            AuctionneerId = dto.AuctionneerId,
+            StartTime = dto.StartTime,
             EndTime = dto.EndTime,
-            AuctionneerId = auctioneer.Id,
-            StartTime = DateTime.UtcNow,
-            StartingPrice = dto.StartingPrice,
+            Status = dto.Status ?? "draft"
         };
 
         _db.Auctions.Add(auction);
         _db.SaveChanges();
 
-        return Ok($"Auction {auction.Title} created successfully.");
+        return Ok($"Auction {auction.Id} created successfully.");
     }
 
     // PUT: /auctions/{id}
     [HttpPut("{id}")]
-    [IgnoreAntiforgeryToken] // Dit moet weg zodra JWT is geimplementeerd
-    public IActionResult UpdateAuction(Guid id, [FromForm] CreateAuctionDto dto)
+    [IgnoreAntiforgeryToken]
+    public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionDto dto)
     {
         var auction = _db.Auctions.Find(id);
         if (auction == null)
             return NotFound("Auction not found.");
 
-        // Validatie
-        if (string.IsNullOrWhiteSpace(dto.Title) || dto.AuctionneerId == Guid.Empty || dto.EndTime <= DateTime.UtcNow)
-            return BadRequest("Invalid auction data.");
+        if (dto.EndTime <= dto.StartTime)
+            return BadRequest("End time must be after start time.");
 
-        auction.Title = dto.Title;
-        auction.Description = dto.Description;
         auction.StartTime = dto.StartTime;
         auction.EndTime = dto.EndTime;
+        auction.Status = dto.Status;
+        auction.AuctionneerId = dto.AuctionneerId;
 
         _db.SaveChanges();
 
-        return Ok($"Auction {auction.Title} updated successfully.");
+        return Ok($"Auction {auction.Id} updated successfully.");
     }
 
     // DELETE: /auctions/{id}
@@ -98,17 +90,14 @@ public class AuctionController : Controller
         _db.Auctions.Remove(auction);
         _db.SaveChanges();
 
-        return Ok($"Auction {auction.Title} deleted successfully.");
+        return Ok($"Auction {auction.Id} deleted successfully.");
     }
 
     public class CreateAuctionDto
     {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public DateTime EndTime { get; set; }
         public Guid AuctionneerId { get; set; }
         public DateTime StartTime { get; set; }
-
-        public decimal StartingPrice { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Status { get; set; } = "draft";
     }
 }
