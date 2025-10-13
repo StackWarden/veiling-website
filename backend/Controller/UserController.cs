@@ -1,61 +1,61 @@
 using Microsoft.AspNetCore.Mvc;
-using backend.Db;
 using backend.Db.Entities;
-using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Identity;
 
 namespace backend.Controllers;
 
 [Route("users")]
-public class UserController : Controller
+[ApiController]
+public class UserController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly UserManager<User> _userManager;
+    private readonly SignInManager<User> _signInManager;
 
-    public UserController(AppDbContext db)
+    public UserController(UserManager<User> userManager, SignInManager<User> signInManager)
     {
-        _db = db;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
+
     // POST: /users/register
     [HttpPost("register")]
-    [IgnoreAntiforgeryToken] // Dit moet weg zodra JWT is geimplementeerd
-    public IActionResult Register([FromForm] RegisterDto dto)
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        // Validatie
         if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email))
             return BadRequest("Name and Email are required.");
 
-        // Check of e-mailadres al bestaat
-        if (_db.Users.Any(u => u.Email == dto.Email))
+        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+        if (existingUser != null)
             return Conflict("A user with this email already exists.");
 
-        // Nieuwe gebruiker aanmaken
         var user = new User
         {
-            Id = Guid.NewGuid(),
-            Name = dto.Name,
+            UserName = dto.Email,
             Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Role = "user",
-            CreatedAt = DateTime.UtcNow
+            Name = dto.Name
         };
 
-        _db.Users.Add(user);
-        _db.SaveChanges();
+        var result = await _userManager.CreateAsync(user, dto.Password);
+
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+
+        // default role
+        await _userManager.AddToRoleAsync(user, "buyer"); // or supplier / auctioneer
 
         return Ok($"User {user.Name} registered successfully.");
     }
 
     // POST: /users/login
     [HttpPost("login")]
-    [IgnoreAntiforgeryToken]
-    public IActionResult Login([FromForm] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var user = _db.Users.FirstOrDefault(u => u.Email == dto.Email);
+        var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null)
             return Unauthorized("Invalid email or password.");
 
-        // Password check
-        var validPassword = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
-        if (!validPassword)
+        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+        if (!result.Succeeded)
             return Unauthorized("Invalid email or password.");
 
         return Ok($"Welcome back, {user.Name}!");
@@ -63,19 +63,15 @@ public class UserController : Controller
 
     // GET: /users
     [HttpGet("")]
-    public IActionResult Index()
+    public IActionResult Index([FromServices] UserManager<User> userManager)
     {
-        var users = _db.Users
-            .AsNoTracking()
-            .Select(u => new
-            {
-                u.Id,
-                u.Name,
-                u.Email,
-                u.Role,
-                u.CreatedAt
-            })
-            .ToList();
+        var users = userManager.Users.Select(u => new
+        {
+            u.Id,
+            u.Name,
+            u.Email,
+            u.CreatedAt
+        });
 
         return Ok(users);
     }
