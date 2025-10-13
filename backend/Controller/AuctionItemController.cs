@@ -19,7 +19,7 @@ public class AuctionItemController : Controller
     [HttpGet]
     public IActionResult GetAllAuctionItems()
     {
-        var auctionItems = _db.AuctionItems.Include(ai => ai.Auction).ToList();
+        var auctionItems = _db.AuctionItems.ToList();
         return Ok(auctionItems);
     }
 
@@ -27,7 +27,7 @@ public class AuctionItemController : Controller
     [HttpGet("{id}")]
     public IActionResult GetAuctionItemById(Guid id)
     {
-        var auctionItem = _db.AuctionItems.Include(ai => ai.Auction).FirstOrDefault(ai => ai.Id == id);
+        var auctionItem = _db.AuctionItems.FirstOrDefault(ai => ai.Id == id);
         if (auctionItem == null)
             return NotFound("Auction item not found.");
 
@@ -64,7 +64,7 @@ public class AuctionItemController : Controller
     public IActionResult UpdateAuctionItem(Guid id, [FromForm] AuctionItemDto dto)
     {
         // Validatie
-        var auctionItem = _db.AuctionItems.Include(ai => ai.Auction).FirstOrDefault(ai => ai.Id == id);
+        var auctionItem = _db.AuctionItems.FirstOrDefault(ai => ai.Id == id);
         if (auctionItem == null)
             return NotFound("Auction item not found.");
 
@@ -99,8 +99,8 @@ public class AuctionItemController : Controller
     public class AuctionItemDto
     {
         public Guid AuctionId { get; set; }
+        public Guid ProductId { get; set; }
         public int LotNumber { get; set; }
-        public Product ProductId { get; set; }
         public string Status { get; set; } = "queued"; // queued | active | sold | unsold
     }
 
