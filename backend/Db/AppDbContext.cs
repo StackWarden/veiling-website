@@ -20,11 +20,18 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Configure Foreign-keys for AuctionItem
         modelBuilder.Entity<AuctionItem>()
-            .HasOne(e => e.Product)
-            .WithMany(e => e.AuctionItems)
-            .HasForeignKey(e => e.ProductId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasKey(ai => new { ai.AuctionId, ai.ProductId });
+
+        modelBuilder.Entity<AuctionItem>()
+            .HasOne(ai => ai.Auction)
+            .WithMany(a => a.AuctionItems)
+            .HasForeignKey(ai => ai.AuctionId);
+
+        modelBuilder.Entity<AuctionItem>()
+            .HasOne(ai => ai.Product)
+            .WithMany(p => p.AuctionItems)
+            .HasForeignKey(ai => ai.ProductId);
     }
 }

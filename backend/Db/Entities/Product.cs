@@ -20,5 +20,6 @@ public class Product
     public ClockLocation ClockLocation { get; set; }
     public DateOnly? AuctionDate { get; set; }
     public string? PhotoUrl { get; set; }
+
     public List<AuctionItem> AuctionItems { get; set; } = new();
 }
