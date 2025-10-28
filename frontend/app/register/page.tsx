@@ -3,7 +3,7 @@ import Register from "@/components/register";
 export default function Logins() {
   return (
        <Container>
-        <Register></Register>
+        <Register />
       </Container>
   );
 }
