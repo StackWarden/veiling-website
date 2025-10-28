@@ -6,15 +6,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 Env.Load();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -82,13 +82,31 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = Environment.GetEnvironmentVariable("DOMAIN"),
         ValidAudience = Environment.GetEnvironmentVariable("DOMAIN"),
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")))
+            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET") ?? string.Empty))
     };
 });
 
 builder.Services.AddAuthorization();
 
-async Task SeedRolesAsync(WebApplication app)
+var allowedOrigins = new[]
+{
+    "http://localhost:3000",
+};
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowNextJs", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+var app = builder.Build();
+
+async Task SeedRolesAsync()
 {
     using var scope = app.Services.CreateScope();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
@@ -103,10 +121,7 @@ async Task SeedRolesAsync(WebApplication app)
         }
     }
 }
-
-var app = builder.Build();
-
-await SeedRolesAsync(app);
+await SeedRolesAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -116,8 +131,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
+
+app.UseCors("AllowNextJs");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();
