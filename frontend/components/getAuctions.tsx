@@ -23,8 +23,12 @@ export default function AuctionList() {
       if (!response.ok) throw new Error("Failed to fetch auctions");
       const data: Auction[] = await response.json();
       setAuctions(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
     } finally {
       setLoading(false);
     }
