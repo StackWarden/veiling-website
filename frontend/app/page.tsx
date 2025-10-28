@@ -1,13 +1,12 @@
-import ExampleComponent from "@/components/exampleComponent";
 import AuctionList from "@/components/getAuctions";
+import Container from "@/components/container";
 
 export default function Home() {
   return (
     <div>
-      <main>
-        <ExampleComponent />
-        <AuctionList />
-      </main>
+        <Container>
+          <AuctionList />
+        </Container>
     </div>
   );
 }
