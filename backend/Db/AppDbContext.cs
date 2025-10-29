@@ -24,8 +24,12 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         // Configure Foreign-keys for AuctionItem
         modelBuilder.Entity<AuctionItem>()
-            .HasKey(ai => new { ai.AuctionId, ai.ProductId });
+            .HasKey(ai => ai.Id);
 
+        modelBuilder.Entity<AuctionItem>()
+            .HasIndex(ai => new { ai.AuctionId, ai.ProductId })
+            .IsUnique();
+            
         modelBuilder.Entity<AuctionItem>()
             .HasOne(ai => ai.Auction)
             .WithMany(a => a.AuctionItems)
