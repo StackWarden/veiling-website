@@ -1,3 +1,5 @@
+
+import Container from "@/components/container";
 import GetAuctions from "@/components/api/auctions/getAuctions";
 import PostAuction from "@/components/api/auctions/postAuction";
 import ExampleComponent from "@/components/exampleComponent";
@@ -5,11 +7,11 @@ import ExampleComponent from "@/components/exampleComponent";
 export default function Home() {
   return (
     <div>
-      <main>
-        <ExampleComponent />
-        <GetAuctions />
-        <PostAuction />
-      </main>
+        <Container>
+          <ExampleComponent />
+          <GetAuctions />
+          <PostAuction />
+        </Container>
     </div>
   );
 }
