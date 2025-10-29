@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 
-interface PostApiProps<T> {
+interface PostApiProps<T extends object> {
   route: string;
   title?: string;
   initialData: T;
 }
 
-export default function PostApi<T extends Record<string, any>>({
+export default function PostApi<T extends object>({
   route,
   title,
   initialData,
@@ -18,11 +18,11 @@ export default function PostApi<T extends Record<string, any>>({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const handleChange = (key: keyof T, value: any) => {
+  const handleChange = <K extends keyof T>(key: K, value: T[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -40,7 +40,7 @@ export default function PostApi<T extends Record<string, any>>({
       setFormData(initialData);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
-      else setError("unknown error");
+      else setError("Unknown error");
     } finally {
       setLoading(false);
     }
@@ -57,8 +57,10 @@ export default function PostApi<T extends Record<string, any>>({
               {key}:{" "}
               <input
                 type="text"
-                value={value as any}
-                onChange={(e) => handleChange(key as keyof T, e.target.value)}
+                value={String(value ?? "")}
+                onChange={(e) =>
+                  handleChange(key as keyof T, e.target.value as T[keyof T])
+                }
                 style={{ padding: "0.3rem", width: "300px" }}
               />
             </label>
