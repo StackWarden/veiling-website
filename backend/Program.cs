@@ -17,7 +17,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
     options.UseSqlServer(connectionString);
 });
-
+var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://127.0.0.1:5000";
+builder.WebHost.UseUrls(urls);
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

@@ -6,18 +6,18 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/backend/bin/Debug/net9.0/<BACKEND_DLL>",
-            "args": [],
+            "program": "${workspaceFolder}/backend/bin/Debug/net9.0/veiling-website.dll",
             "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://127.0.0.1:5226"
+            },
+            "console": "integratedTerminal",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-            },
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            },
-            "console": "integratedTerminal"
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+|http?://\\S+)"
+            }
         }
     ]
 }
