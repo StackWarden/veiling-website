@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 type Product = {
   id: string;
   supplierId: string;
@@ -26,13 +27,14 @@ const getClockLocationName = (value: string | number) => {
 
 export default function ProductTable({ products }: { products: Product[] }) {
   return (
-    <section className="bg-white rounded-xl shadow-md p-6 w-full max-w-5xl">
-     <div className="flex justify-between items-center mb-4">   
+    <>
+    <div className="flex justify-between items-center mb-4">   
       <h2 className="text-xl font-semibold">Available Products</h2>
 
-      <button
+      <Link
           className="p-1 hover:bg-gray-100 rounded-full"
           aria-label="Add product"
+          href="products/create"
         >
           <svg
             width="30"
@@ -46,7 +48,7 @@ export default function ProductTable({ products }: { products: Product[] }) {
               fill="black"
             />
           </svg>
-        </button>
+        </Link>
       </div>
 
       {products.length === 0 ? (
@@ -97,6 +99,6 @@ export default function ProductTable({ products }: { products: Product[] }) {
           </tbody>
         </table>
       )}
-    </section>
+      </>
   );
 }

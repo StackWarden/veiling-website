@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePostData } from "./api/post";
+import Navigation from "./navigation";
 
 enum ClockLocation {
   Aalsmeer = "Aalsmeer",
@@ -49,7 +50,7 @@ export default function AddProduct() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold text-center mb-6">Create Product</h1>
+      <Navigation title="Create Product"/>
 
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         {success && <p className="text-green-600 text-center">Product added successfully</p>}

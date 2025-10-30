@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePostData } from "../post";
+import Navigation from "@/components/navigation";
 interface Auction {
   startTime: string;
   endTime: string;
@@ -26,8 +27,7 @@ export default function PostAuction() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold text-center mb-6">Create Auction</h1>
-
+      <Navigation title="Create Auction" />
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         <div className="flex flex-col">
           <label htmlFor="startTime" className="text-gray-700 mb-1">Start Time</label>

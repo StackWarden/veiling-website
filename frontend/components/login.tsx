@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Login() {
   const searchParams = useSearchParams();

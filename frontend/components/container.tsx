@@ -8,7 +8,8 @@ export default function Container(props: ContainerProps) {
       <section
         className="
           bg-white p-8 rounded-2xl shadow-lg
-          w-full max-w-md sm:max-w-lg md:max-w-xl
+          w-auto max-w-full
+          sm:min-w-[400px] md:min-w-[500px]
           min-h-[500px]
           flex flex-col justify-center
         "

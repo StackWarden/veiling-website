@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import ProductTable from "@/components/ProductTable";
+import Navigation from "./navigation";
 
 type Product = {
   id: string;
@@ -39,17 +40,13 @@ export default function ProductsDashboard() {
   }, []);
 
   return (
-<div className="w-full h-full bg-white rounded-2xl shadow-md p-8 flex flex-col">
-
-        <h1 className="text-lg font-semibold text-center mb-8">Products</h1>
-
-        <div className="flex-1 overflow-x-auto border border-gray-300 rounded">
-          {loading ? (
-            <p className="p-4 text-gray-500">Loading...</p>
-        ) : ( 
-                <ProductTable products={products} />
-        )}
-    </div>
-</div>
+    <>
+      <Navigation title="Products" />
+      {loading ? (
+        <p className="p-4 text-gray-500">Loading...</p>
+      ) : (
+        <ProductTable products={products} />
+      )}
+    </>
   );
 }
