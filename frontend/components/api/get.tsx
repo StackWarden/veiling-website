@@ -31,18 +31,17 @@ export default function GetApi<T>({ route, title, renderItem }: DataFetcherProps
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>{title ?? "Data List"}</h1>
-      <button onClick={fetchData}>Fetch {title ?? "Data"}</button>
-
+    <div className="p-2">
       {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
 
       <ul>
         {data.map((item, i) => (
           <li key={i}>{renderItem(item)}</li>
         ))}
       </ul>
+
+      <button onClick={fetchData}>Fetch {title ?? "Data"}</button>
     </div>
   );
 }
