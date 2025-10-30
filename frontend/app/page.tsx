@@ -1,11 +1,13 @@
-import ExampleComponent from "@/components/exampleComponent";
+
+import Container from "@/components/container";
+import GetAuctions from "@/components/api/auctions/getAuctions";
 
 export default function Home() {
   return (
     <div>
-      <main>
-        <ExampleComponent />
-      </main>
+        <Container>
+          <GetAuctions />
+        </Container>
     </div>
   );
 }
