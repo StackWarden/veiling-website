@@ -15,4 +15,29 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Product> Products { get; set; }
     public DbSet<Auction> Auctions { get; set; }
     public DbSet<Bid> Bids { get; set; }
+
+    public DbSet<AuctionItem> AuctionItems { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure Foreign-keys for AuctionItem
+        modelBuilder.Entity<AuctionItem>()
+            .HasKey(ai => ai.Id);
+
+        modelBuilder.Entity<AuctionItem>()
+            .HasIndex(ai => new { ai.AuctionId, ai.ProductId })
+            .IsUnique();
+            
+        modelBuilder.Entity<AuctionItem>()
+            .HasOne(ai => ai.Auction)
+            .WithMany(a => a.AuctionItems)
+            .HasForeignKey(ai => ai.AuctionId);
+
+        modelBuilder.Entity<AuctionItem>()
+            .HasOne(ai => ai.Product)
+            .WithMany(p => p.AuctionItems)
+            .HasForeignKey(ai => ai.ProductId);
+    }
 }
