@@ -1,29 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 
-interface PostApiProps<T extends object> {
-  route: string;
-  title?: string;
-  initialData: T;
+interface PostDataResult<T> {
+  loading: boolean;
+  error: string;
+  success: boolean;
+  postData: (data: T) => Promise<void>;
 }
 
-export default function PostApi<T extends object>({
-  route,
-  title,
-  initialData,
-}: PostApiProps<T>) {
-  const [formData, setFormData] = useState<T>(initialData);
+export function usePostData<T extends object>(
+  route: string
+): PostDataResult<T> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const handleChange = <K extends keyof T>(key: K, value: T[K]) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const postData = async (data: T) => {
     setLoading(true);
     setError("");
     setSuccess(false);
@@ -32,12 +25,15 @@ export default function PostApi<T extends object>({
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${route}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error(`Failed post to ${route}`);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Failed to POST to ${route}`);
+      }
+
       setSuccess(true);
-      setFormData(initialData);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
       else setError("Unknown error");
@@ -46,34 +42,5 @@ export default function PostApi<T extends object>({
     }
   };
 
-  return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Create {title ?? "Item"}</h1>
-
-      <form onSubmit={handleSubmit}>
-        {Object.entries(formData).map(([key, value]) => (
-          <div key={key} style={{ marginBottom: "1rem" }}>
-            <label>
-              {key}:{" "}
-              <input
-                type="text"
-                value={String(value ?? "")}
-                onChange={(e) =>
-                  handleChange(key as keyof T, e.target.value as T[keyof T])
-                }
-                style={{ padding: "0.3rem", width: "300px" }}
-              />
-            </label>
-          </div>
-        ))}
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Posting..." : `Post ${title ?? "Item"}`}
-        </button>
-      </form>
-
-      {error && <p style={{ color: "red" }}>Nope: {error}</p>}
-      {success && <p style={{ color: "green" }}>Success :D</p>}
-    </div>
-  );
+  return { loading, error, success, postData };
 }
