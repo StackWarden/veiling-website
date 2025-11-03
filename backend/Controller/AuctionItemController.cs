@@ -44,6 +44,18 @@ public class AuctionItemController : Controller
         if (auctionItem == null)
             return BadRequest("Invalid auction item data.");
 
+        if (dto.LotNumber <= 0)
+            return BadRequest("LotNumber must be a positive integer.");
+        
+        if (_db.Auctions.Find(dto.AuctionId) == null)
+            return BadRequest("Referenced Auction does not exist.");
+
+        if (_db.Products.Find(dto.ProductId) == null)
+            return BadRequest("Referenced Product does not exist.");
+
+        if (_db.AuctionItems.Any(ai => ai.AuctionId == dto.AuctionId && ai.ProductId == dto.ProductId))
+            return BadRequest("An auction item with the same AuctionId and ProductId already exists.");
+
         auctionItem.Id = Guid.NewGuid();
         auctionItem.AuctionId = dto.AuctionId;
         auctionItem.ProductId = dto.ProductId;
