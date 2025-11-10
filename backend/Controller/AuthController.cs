@@ -11,12 +11,15 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
+// Deze controller regelt alles wat te maken heeft met authenticatie.
+// Login, registratie en JWT-token generatie: de poortwachter van je hele API.
+// En ja, dit hoort technisch gezien in een aparte AuthService, maar voor nu doen we het gewoon hier.
 [ApiController]
 [Route("auth")]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
+    private readonly UserManager<User> _userManager; // Handige Identity-helper om users te vinden, aan te maken en te beheren.
+    private readonly SignInManager<User> _signInManager; // Behandelt loginchecks en wachtwoordvalidatie.
 
     public AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
     {
@@ -25,45 +28,58 @@ public class AuthController : ControllerBase
     }
 
     // POST: /auth/login
+    // Controleert de ingevoerde email en wachtwoord via ASP.NET Identity.
+    // Als de combinatie klopt, sturen we een vriendelijke welkomstboodschap terug.
+    // Geen JWT, geen cookies, gewoon een ouderwets "hoi, je bent ingelogd".
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user == null)
+        if (user == null) {
             return Unauthorized("Invalid email or password.");
+        }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
-        if (!result.Succeeded)
+        if (!result.Succeeded) {
             return Unauthorized("Invalid email or password.");
+        }
 
         return Ok($"Welcome back, {user.Name}!");
     }
 
     // POST: /auth/jwt
+    // Dezelfde loginlogica als hierboven, maar deze keer krijg je wel een JWT-token.
+    // Perfect voor API-clients of mobiele apps die geen sessies gebruiken.
+    // Kortom: zelfde validatie, ander souvenir.
     [HttpPost("jwt")]
     public async Task<IActionResult> LoginJWT([FromBody] LoginDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user == null)
+        if (user == null) {
             return Unauthorized("Invalid email or password.");
-
+        }
         var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
-        if (!result.Succeeded)
+        if (!result.Succeeded) {
             return Unauthorized("Invalid email or password.");
-
-        return Ok(GenerateJwtToken(user.Id.ToString())); // return the token
+        }
+        return Ok(GenerateJwtToken(user.Id.ToString())); // Geef het token terug, alsof we superveilig zijn.
     }
 
+    // POST: /auth/register
+    // Maakt een nieuwe gebruiker aan op basis van de opgegeven data.
+    // Controleert of de email nog niet bestaat, we zijn tenslotte geen duplicatenverzamelaars.
+    // Daarna wordt de user aangemaakt, krijgt standaard de rol 'buyer' en is officieel onderdeel van het systeem.
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email))
+        if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email)) {
             return BadRequest("Name and Email are required.");
+        }
 
         var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser != null)
+        if (existingUser != null) {
             return Conflict("A user with this email already exists.");
-
+        }
         var user = new User
         {
             UserName = dto.Email,
@@ -73,15 +89,19 @@ public class AuthController : ControllerBase
 
         var result = await _userManager.CreateAsync(user, dto.Password);
 
-        if (!result.Succeeded)
+        if (!result.Succeeded) {
             return BadRequest(result.Errors);
+        }
 
-        // default role
-        await _userManager.AddToRoleAsync(user, "buyer"); // or supplier / auctioneer
+        // Default rol meegeven, omdat iedereen ergens moet beginnen.
+        await _userManager.AddToRoleAsync(user, "buyer"); // Of "supplier" / "auctioneer" als je zin hebt.
 
         return Ok($"User {user.Name} registered successfully.");
     }
 
+    // Genereert een JWT-token met de user-ID als subject.
+    // Gebruikt het geheime wachtwoord uit je .env (hopelijk niet hardcoded).
+    // Resultaat: een versleutelde string waarmee de user kan doen alsof hij legitiem is.
     private string GenerateJwtToken(string username)
     {
         var secret = Environment.GetEnvironmentVariable("JWT_SECRET");
@@ -105,6 +125,8 @@ public class AuthController : ControllerBase
     }
 }
 
+// DTO voor registratie: de broodnodige gegevens om een nieuwe gebruiker aan te maken.
+// Geen magie, geen extra velden, gewoon de essentials.
 public class RegisterDto
 {
     public string Name { get; set; } = string.Empty;
@@ -112,6 +134,8 @@ public class RegisterDto
     public string Password { get; set; } = string.Empty;
 }
 
+// DTO voor login, want blijkbaar wil niemand elke keer zijn hele user-object meesturen.
+// Alleen email en wachtwoord zijn genoeg om toegang te krijgen tot de digitale wereld.
 public class LoginDto
 {
     public string Email { get; set; } = string.Empty;
