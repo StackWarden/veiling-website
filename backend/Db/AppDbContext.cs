@@ -14,5 +14,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
     public DbSet<Product> Products { get; set; }
     public DbSet<Auction> Auctions { get; set; }
+    public DbSet<SaleResult> SaleResults { get; set; }
     public DbSet<Bid> Bids { get; set; }
 }
