@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 type Product = {
   id: string;
   supplierId: string;
@@ -83,10 +85,12 @@ export default function ProductTable({ products }: { products: Product[] }) {
                 </td>
                 <td className="border border-gray-300 p-2 text-center">
                   {p.photoUrl ? (
-                    <img
+                    <Image
                       src={p.photoUrl}
                       alt={p.species}
                       className="w-12 h-12 object-cover rounded mx-auto"
+                      width="48"
+                      height="48"
                     />
                   ) : (
                     <span className="text-gray-400">No photo</span>
