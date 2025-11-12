@@ -38,11 +38,11 @@ export default function AuctionsDashboard() {
   }
 
     return (
-  <div className="w-full h-full bg-white rounded-2xl shadow-md p-8 flex flex-col">
+  <div className="w-full h-full bg-white">
 
-          <h1 className="text-lg font-semibold text-center mb-8">Auctions</h1>
+          <h1 className="text-xl font-semibold font-family: 'Sansation', sans-serif; text-center mb-8">Auctions</h1>
 
-          <div className="flex-1 overflow-x-auto border border-gray-300 rounded">
+          <div className="flex-1 overflow-x-auto border border-black-600 rounded">
             {loading ? (
               <p className="p-4 text-gray-500">Loading...</p>
           ) : ( 
