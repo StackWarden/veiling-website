@@ -16,7 +16,8 @@ public class AuctionTests : IClassFixture<TestFactory>
     }
 
     // --------------------------------------------------GET REQUESTS--------------------------------------------------
-    // GET /auctions test
+    
+    // /auctions tests
     [Fact(DisplayName = "[GET /auctions returns 200 OK]")]
     public async Task GetAuctions()
     {
@@ -26,7 +27,6 @@ public class AuctionTests : IClassFixture<TestFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    // GET /auctions/{id} test
     [Fact(DisplayName = "[GET /auctions with specific ID & returns 200 OK]")]
     public async Task GetAuctionsById()
     {
@@ -61,8 +61,19 @@ public class AuctionTests : IClassFixture<TestFactory>
         auction.GetProperty("status").GetString().Should().Be("Planned");
     }
 
+    // /AuctionItem tests
+    [Fact(DisplayName = "[GET /AuctionItem returns 200 OK]")]
+    public async Task GetAuctionItem()
+    {
+        var response = await _client.GetAsync("/AuctionItem");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     // --------------------------------------------------POST REQUESTS--------------------------------------------------
-    // POST /auctions test
+
+    // /auctions tests
     [Fact(DisplayName = "[POST /auctions creates an auction]")]
     public async Task CreateAuction()
     {
@@ -87,7 +98,8 @@ public class AuctionTests : IClassFixture<TestFactory>
     }
 
     // --------------------------------------------------PUT REQUESTS--------------------------------------------------
-    // PUT /auctions/{id} test
+
+    // /auctions tests
     [Fact(DisplayName = "[PUT /auctions/{id} updates status to Finished & returns 200 OK]")]
     public async Task PutAuctionsById()
     {
@@ -136,7 +148,8 @@ public class AuctionTests : IClassFixture<TestFactory>
     }
 
     // --------------------------------------------------DELETE REQUESTS--------------------------------------------------
-    // DELETE /auctions/{id} test
+    
+    // /auctions tests
     [Fact(DisplayName = "[DELETE /auctions/{id} deletes the auction & returns 200 OK]")]
     public async Task DeleteAuctionsById()
     {
