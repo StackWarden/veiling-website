@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Register() {
   const router = useRouter();
@@ -48,9 +49,11 @@ export default function Register() {
       {/* Linkerkant met image*/}
         <div className="relative w-[50%] hidden md:block p-[2px]">
           <div className="rounded-[18px] overflow-hidden h-full">
-            <img
+            <Image
               src="/leaves.png"
               alt="Green leaves"
+              width={800}
+              height={800}
               className="object-cover w-full h-full"
             />
           </div>
@@ -60,16 +63,19 @@ export default function Register() {
       {/* recherkant met register form */}
       <div className="w-[50%] flex items-center justify-center bg-[#0f1c14] py-6">
         {/* witte box met form */}
-        <div className="bg-white rounded-[20px] shadow-2xl p-8 w-full max-w-[26rem] mx-6">
-          {/*logo boven */}
-          <div className="flex justify-center mb-5">
-            <div className="bg-[#0f1c14] rounded-full p-6 flex items-center justify-center">
-              <img 
-              src="/logo.png" 
-              alt="logo" 
-              className="w-10 h-10" />
+          <div className="bg-white rounded-[20px] shadow-2xl p-8 w-full max-w-[26rem] mx-6">
+            {/*logo boven */}
+            <div className="flex justify-center mb-5">
+              <div className="bg-[#0f1c14] rounded-full p-1 flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="logo"
+                  width={40}
+                  height={40}
+                  className="w-14 h-14"
+                />
+              </div>
             </div>
-        </div>
         {/* titel */}
         <h1 className="text-2xl font-semibold text-center mb-4 text-[#0f1c14]">
             Register
