@@ -12,8 +12,8 @@ using backend.Db;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251009091644_InitialAuction")]
-    partial class InitialAuction
+    [Migration("20251013121448_AddSaleResultsTable")]
+    partial class AddSaleResultsTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,6 +87,32 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.SaleResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuctionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("FinalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalProceeds")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SaleResults");
                 });
 
             modelBuilder.Entity("backend.Db.Entities.User", b =>

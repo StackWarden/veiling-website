@@ -6,24 +6,25 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialAuction : Migration
+    public partial class AddSaleResultsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Auctions",
+                name: "SaleResults",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AuctionneerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    AuctionItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BuyerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FinalPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    TotalProceeds = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Auctions", x => x.Id);
+                    table.PrimaryKey("PK_SaleResults", x => x.Id);
                 });
         }
 
@@ -31,7 +32,7 @@ namespace backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Auctions");
+                name: "SaleResults");
         }
     }
 }

@@ -177,6 +177,34 @@ namespace backend.Migrations
                     b.ToTable("Auctions");
                 });
 
+            modelBuilder.Entity("backend.Db.Entities.AuctionItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuctionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("LotNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuctionId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("AuctionItems");
+                });
+
             modelBuilder.Entity("backend.Db.Entities.Bid", b =>
                 {
                     b.Property<Guid>("Id")
@@ -277,6 +305,32 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.SaleResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuctionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("FinalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalProceeds")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SaleResults");
                 });
 
             modelBuilder.Entity("backend.Db.Entities.User", b =>
@@ -401,6 +455,35 @@ namespace backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.AuctionItem", b =>
+                {
+                    b.HasOne("backend.Db.Entities.Auction", "Auction")
+                        .WithMany("AuctionItems")
+                        .HasForeignKey("AuctionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Db.Entities.Product", "Product")
+                        .WithMany("AuctionItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Auction");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.Auction", b =>
+                {
+                    b.Navigation("AuctionItems");
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.Product", b =>
+                {
+                    b.Navigation("AuctionItems");
                 });
 #pragma warning restore 612, 618
         }
