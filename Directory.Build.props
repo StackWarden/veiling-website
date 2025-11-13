@@ -1,0 +1,6 @@
+<!-- Needed for proper output in terminal when running: dotnet test -->
+<Project>
+  <PropertyGroup>
+    <VSTestLogger>console%3Bverbosity=detailed</VSTestLogger>
+  </PropertyGroup>
+</Project>
