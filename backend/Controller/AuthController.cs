@@ -64,6 +64,31 @@ public class AuthController : ControllerBase
         }
         return Ok(GenerateJwtToken(user.Id.ToString())); // Geef het token terug, alsof we superveilig zijn.
     }
+    [Authorize]
+    [HttpGet("info")]
+    public async Task<IActionResult> UserInfo()
+    {
+        // Extract user ID from JWT Identity puts it in ClaimTypes.NameIdentifier or "sub"
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (userId == null)
+            return Unauthorized("Invalid token");
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return Unauthorized("User not found");
+
+        // Get the user's role (first assigned role)
+        var roles = await _userManager.GetRolesAsync(user);
+        var role = roles.FirstOrDefault() ?? "User";
+
+        return Ok(new
+        {
+            name = user.Name,
+            role = role
+        });
+    }
 
     // POST: /auth/register
     // Maakt een nieuwe gebruiker aan op basis van de opgegeven data.
@@ -110,7 +135,9 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Sub, username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-
+        if (string.IsNullOrWhiteSpace(secret)) {
+            throw new Exception("JWT secret is missing from configuration.");
+        }
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
