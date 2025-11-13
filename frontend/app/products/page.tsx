@@ -1,10 +1,11 @@
-import Container from "@/components/container";
-import ProductsDashboard from "@/components/ProductsDashboard";
+import Header from "@/components/header";
+import ProductList from "@/components/productList";
 
 export default function ProductsPage() {
   return (
-    <Container>
-      <ProductsDashboard />
-    </Container>
+    <>
+      <Header />
+      <ProductList />
+    </>
   );
 }
