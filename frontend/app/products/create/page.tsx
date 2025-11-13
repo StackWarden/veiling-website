@@ -1,9 +1,10 @@
-import Container from "@/components/container"
+import Header from "@/components/header"
 import AddProduct from "@/components/addProduct";
 export default function Create() {
   return (
-       <Container>
-            <AddProduct />
-      </Container>
+    <>
+      <Header />
+      <AddProduct />
+    </>
   );
 }
