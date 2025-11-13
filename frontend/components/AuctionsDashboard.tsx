@@ -51,9 +51,9 @@ export default function AuctionsDashboard() {
       </div>
     </header>
 
-          <h1 className="text-xl font-semibold font-family: 'Sansation', sans-serif; text-center mb-1">Auctions</h1>
+          <h1 className="text-xl font-semibold text-center mb-1">Auctions</h1>
 
-          <div className="flex-1 overflow-x-auto border border-black-600 rounded">
+          <div className="flex justify-center overflow-x-auto">
             {loading ? (
               <p className="p-4 text-gray-500">Loading...</p>
           ) : ( 

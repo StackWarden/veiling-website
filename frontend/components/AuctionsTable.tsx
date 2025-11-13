@@ -21,14 +21,12 @@ export default function AuctionTable({ initialAuctions }: { initialAuctions?: Au
 
   return (
     <section className="bg-white rounded-xl shadow-md p-6 w-full max-w-5xl">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-center">Available Auctions</h2>
+      <div className="flex justify-end items-center mb-4">
 
-        <button //Knop om een nieuwe veiling aan te maken
+        <button 
           className="p-1 hover:bg-gray-300 rounded-full"
-          aria-label="Add auction"
+          aria-label="Create auction"
         >
-          <h3 className="text-sm font-small">Create Auction</h3>
           <svg 
           width="30" 
           height="30" 
@@ -39,13 +37,12 @@ export default function AuctionTable({ initialAuctions }: { initialAuctions?: Au
           </svg>
         </button>
       </div>
-
       {auctions.length === 0 ? (
         <p className="text-gray-500">No auctions available.</p>
       ) : (
-        <table className="w-full border-collapse border border-gray-300 text-left">
+        <table className="w-full border-collapse border border-gray-300 text-center">
           <thead className="bg-gray-100">
-            <tr>
+            <tr> 
               <th className="border border-gray-300 p-2">Description</th>
               <th className="border border-gray-300 p-2">Start Date</th>
               <th className="border border-gray-300 p-2">End Date</th>
@@ -54,10 +51,10 @@ export default function AuctionTable({ initialAuctions }: { initialAuctions?: Au
           </thead>
           <tbody>
             {auctions.map((a) => (
-              <tr key={a.id} className="hover:bg-gray-50" >
+              <tr key={a.id} className="hover:bg-black hover:text-white hover:img" >
                 <td className="border border-gray-300 p-2">{a.description ?? "-"}</td>
-                <td className="border border-gray-300 p-2">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td>
-                <td className="border border-gray-300 p-2">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td>
+                <td className="border border-gray-300 p-2">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
+                <td className="border border-gray-300 p-2">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
                 <td className="border border-gray-300 p-2">{a.status ?? "-"}</td>
               </tr>
             ))}
