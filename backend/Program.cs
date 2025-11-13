@@ -14,6 +14,8 @@ var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
 
 Env.Load(envFilePath);
 
+var isTesting = builder.Environment.IsEnvironment("Testing");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -51,42 +53,45 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+if (!isTesting)
 {
-    var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-    options.UseSqlServer(connectionString);
-});
-
-builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
-{
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    builder.Services.AddDbContext<AppDbContext>(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = Environment.GetEnvironmentVariable("DOMAIN"),
-        ValidAudience = Environment.GetEnvironmentVariable("DOMAIN"),
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET") ?? string.Empty))
-    };
-});
+        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+        options.UseSqlServer(connectionString);
+    });
+
+    builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = Environment.GetEnvironmentVariable("DOMAIN"),
+            ValidAudience = Environment.GetEnvironmentVariable("DOMAIN"),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET") ?? string.Empty))
+        };
+    });
+}
 
 builder.Services.AddAuthorization();
 
@@ -108,22 +113,26 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-async Task SeedRolesAsync()
+if (!isTesting)
 {
-    using var scope = app.Services.CreateScope();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-
-    string[] roles = { "buyer", "supplier", "auctioneer" };
-
-    foreach (var role in roles)
+    async Task SeedRolesAsync()
     {
-        if (!await roleManager.RoleExistsAsync(role))
+        using var scope = app.Services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+
+        string[] roles = { "buyer", "supplier", "auctioneer" };
+
+        foreach (var role in roles)
         {
-            await roleManager.CreateAsync(new IdentityRole<Guid>(role));
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole<Guid>(role));
+            }
         }
     }
+
+    await SeedRolesAsync();
 }
-await SeedRolesAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -137,7 +146,10 @@ app.UseRouting();
 
 app.UseCors("AllowNextJs");
 
-app.UseAuthentication();
+if (!isTesting)
+{
+    app.UseAuthentication();
+}
 app.UseAuthorization();
 
 app.MapControllers();
