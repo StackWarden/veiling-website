@@ -40,16 +40,6 @@ export default function AuctionsDashboard() {
     return (
   // Container for the Auctions Dashboard
   <div className="w-full h-full bg-white">
-    <header className="flex items-center justify-between p-8">
-      <div className="flex items-center">
-        <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
-      </div>
-      <div className="Topnav-right">
-          <a className = "active" href="auctions">Auctions</a>
-          <a href="messages"> Messages</a>
-          <a href="profile"> Profile</a>
-      </div>
-    </header>
 
           <h1 className="text-xl font-semibold text-center mb-1">Auctions</h1>
 

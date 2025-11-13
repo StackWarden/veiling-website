@@ -58,6 +58,7 @@ export default function PostAuction() {
         >
           {loading ? "Posting..." : "Create Auction"}
         </button>
+
       </form>
 
       {error && <p className="text-red-600 text-center mt-4">{error}</p>}
