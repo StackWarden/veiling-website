@@ -105,6 +105,5 @@ public class AuctionItemController : Controller
         public Guid AuctionId { get; set; }
         public Guid ProductId { get; set; }
         public int LotNumber { get; set; }
-        public String Status { get; set; } 
-    }
+        public string Status { get; set; } = "Pending";    }
 }
