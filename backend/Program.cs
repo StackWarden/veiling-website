@@ -10,7 +10,9 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load();
+var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+
+Env.Load(envFilePath);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -141,3 +143,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Allow tests to boot up API
+public partial class Program { }

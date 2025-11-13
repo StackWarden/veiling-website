@@ -7,6 +7,5 @@ public class Auction
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public required string Status { get; set; }
-
-    public ICollection<AuctionItem> AuctionItems { get; set; }
+    public ICollection<AuctionItem> AuctionItems { get; set; } = new List<AuctionItem>();
 }

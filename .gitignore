@@ -2,3 +2,5 @@
 veiling-website.sln
 .env.local
 .idea
+tests/backend.tests/bin
+tests/backend.tests/obj

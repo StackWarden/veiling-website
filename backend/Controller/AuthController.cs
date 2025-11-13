@@ -104,7 +104,11 @@ public class AuthController : ControllerBase
     // Resultaat: een versleutelde string waarmee de user kan doen alsof hij legitiem is.
     private string GenerateJwtToken(string username)
     {
-        var secret = Environment.GetEnvironmentVariable("JWT_SECRET");
+        var secret = Environment.GetEnvironmentVariable("JWT_SECRET")
+            ?? throw new InvalidOperationException("JWT_SECRET is not configured.");
+        var domain = Environment.GetEnvironmentVariable("DOMAIN")
+            ?? throw new InvalidOperationException("DOMAIN is not configured.");
+
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, username),
@@ -115,8 +119,8 @@ public class AuthController : ControllerBase
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: Environment.GetEnvironmentVariable("DOMAIN"),
-            audience: Environment.GetEnvironmentVariable("DOMAIN"),
+            issuer: domain,
+            audience: domain,
             claims: claims,
             expires: DateTime.Now.AddMinutes(30),
             signingCredentials: creds);
