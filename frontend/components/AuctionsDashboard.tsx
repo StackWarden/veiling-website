@@ -38,10 +38,10 @@ export default function AuctionsDashboard() {
   }
 
     return (
-  // Container for the Auctions Dashboard
-  <div className="w-full h-full bg-white">
 
-          <h1 className="text-xl font-semibold text-center mb-1">Auctions</h1>
+  <div className="w-full h-full bg-white ">
+
+          <h1 className="text-xl font-semibold text-center mb-1">Auction Schedule</h1>
 
           <div className="flex justify-center overflow-x-auto">
             {loading ? (

@@ -28,7 +28,7 @@ export default function AuctionTable({ initialAuctions }: { initialAuctions?: Au
           <button 
             className="p-1 hover:bg-gray-300 rounded-full"
             aria-label="Create auction"
-          >
+          > Create Auction
             <svg 
             width="30" 
             height="30" 
@@ -43,7 +43,7 @@ export default function AuctionTable({ initialAuctions }: { initialAuctions?: Au
       {auctions.length === 0 ? (
         <p className="text-gray-500">No auctions available.</p>
       ) : (
-        <table className="w-full border-collapse border border-gray-300 text-center">
+        <table className="w-full border-collapse border border-black text-center">
           <thead className="bg-gray-100">
             <tr> 
               <th className="border border-gray-300 p-2">Description</th>
