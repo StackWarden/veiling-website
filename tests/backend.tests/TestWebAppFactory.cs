@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using backend.Db; // required to add to AppDBContext
 
-public sealed class TestWebAppFactory : WebApplicationFactory<Program>
+public sealed class TestFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

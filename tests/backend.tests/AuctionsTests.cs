@@ -6,11 +6,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
 
-public class AuctionTests : IClassFixture<TestWebAppFactory>
+public class AuctionTests : IClassFixture<TestFactory>
 {
     private readonly HttpClient _client;
 
-    public AuctionTests(TestWebAppFactory factory)
+    public AuctionTests(TestFactory factory)
     {
         _client = factory.CreateClient();
     }
