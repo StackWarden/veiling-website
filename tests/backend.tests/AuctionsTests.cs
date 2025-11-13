@@ -26,6 +26,7 @@ public class AuctionTests : IClassFixture<TestWebAppFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    // GET /auctions/{id} test
     [Fact(DisplayName = "[GET /auctions with specific ID & returns 200 OK]")]
     public async Task GetAuctionsWithID()
     {
