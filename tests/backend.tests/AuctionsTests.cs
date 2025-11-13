@@ -39,7 +39,7 @@ public class AuctionTests : IClassFixture<TestWebAppFactory>
             status = "Planned"
         };
 
-        // Act — send POST with JSON
+        // Send POST request
         var response = await _client.PostAsJsonAsync("/auctions", body);
 
         // Assert
