@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<SaleResult> SaleResults { get; set; }
     public DbSet<Bid> Bids { get; set; }
     public DbSet<AuctionItem> AuctionItems { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder ModelBuilder)
     {
@@ -32,5 +33,4 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany(p => p.AuctionItems)
             .HasForeignKey(ai => ai.ProductId);
     }
-    public DbSet<Notification> Notifications { get; set; }
 }
