@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import AuctionTable from "./AuctionsTable";
 
+
 type Auction = {
   id: string;
   description: string;
@@ -41,7 +42,7 @@ export default function AuctionsDashboard() {
 
   <div className="w-full h-full bg-white ">
 
-          <h1 className="text-xl font-semibold text-center mb-1">Auction Schedule</h1>
+          <h1 className="text-[64px] font-semibold text-center mb-1">Auction Schedule</h1>     
 
           <div className="flex justify-center overflow-x-auto">
             {loading ? (
