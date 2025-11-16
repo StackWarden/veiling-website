@@ -32,29 +32,14 @@ export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
-        method:"DELETE",
-      });
-
-      setProducts((prev: any) =>
-        Array.isArray(prev) ? prev.filter ((p: Product) => p.id !==id) : prev
-      );
-
-    } catch(err) {
-      console.error("Failed to delete product:", err);
-    }
-  };
+  
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`);
       const data = await res.json();
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching products:", err);
     } finally {
@@ -65,6 +50,22 @@ export default function ProductList() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
+        method: "DELETE",
+      });
+
+    
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+    }
+  };
 
   return (
     <section className="w-full flex flex-col items-center mt-12 px-4">
