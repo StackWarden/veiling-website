@@ -35,6 +35,8 @@ export default function ProductInfo() {
     auctionDate: "",
   });
 
+  type FormKey = keyof typeof form;
+
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -108,13 +110,13 @@ export default function ProductInfo() {
           </h2>
 
           {[
-            { label: "Species", key: "species" },
-            { label: "Pot Size", key: "potSize" },
-            { label: "Stem Length (cm)", key: "stemLength" },
-            { label: "Quantity", key: "quantity" },
-            { label: "Price (€)", key: "minPrice" },
-            { label: "Clock location", key: "clockLocation" },
-            { label: "Auction date", key: "auctionDate" },
+            { label: "Species", key: "species" as FormKey },
+            { label: "Pot Size", key: "potSize" as FormKey },
+            { label: "Stem Length (cm)", key: "stemLength" as FormKey },
+            { label: "Quantity", key: "quantity" as FormKey},
+            { label: "Price (€)", key: "minPrice" as FormKey },
+            { label: "Clock location", key: "clockLocation" as FormKey },
+            { label: "Auction date", key: "auctionDate" as FormKey},
           ].map(({ label, key }) => (
             <div key={key} className="flex justify-between items-center mb-4">
               <span className="font-medium text-black">{label}</span>
