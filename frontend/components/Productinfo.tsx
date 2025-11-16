@@ -140,7 +140,7 @@ export default function ProductInfo() {
                 
                 <input
                   type="text"
-                  value={(form as any)[key]}
+                  value={form[key]}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, [key]: e.target.value }))
                   }
@@ -149,7 +149,7 @@ export default function ProductInfo() {
                 )
               ) : (
                 <span className="text-gray-700">
-                  {(form as any)[key] || "—"}
+                  {form[key] || "—"}
                 </span>
               )}
 
