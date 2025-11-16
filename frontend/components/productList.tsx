@@ -139,12 +139,12 @@ export default function ProductList() {
 
                   <td className="py-4 px-4 text-right">
                     <div className="flex gap-6 justify-end">
-                      <button
+                      <Link
+                        href={`/products/info/${p.id}`}
                         className="hover:underline underline-offset-2"
-                        type="button"
                       >
                         Edit 
-                      </button>
+                      </Link>
                       <button
                         onClick={() => handleDelete(p.id)}
                         className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
