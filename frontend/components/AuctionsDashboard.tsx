@@ -87,10 +87,10 @@ export default function AuctionsDashboard() {
           <thead className="bg-white">
             <tr className="border-b border-[D9D9D9] text-[#4D4D4D]">
 
-              <th className="p-3 px-4 text-start">Description</th>
-              <th className="p-3 px-4 text-center">Start Date</th>
-              <th className="p-3 px-4 text-center">End Date</th>
-              <th className="p-3 px-4 text-end">Status</th>
+              <th className="p-3 text-start">Description</th>
+              <th className="p-3 text-center">Start Date</th>
+              <th className="p-3 text-center">End Date</th>
+              <th className="p-3 text-end">Status</th>
             </tr>
           </thead>
 
@@ -98,12 +98,12 @@ export default function AuctionsDashboard() {
 
             {auctions.map((a) => {
               return (
-              <tr key={a.id} className="border-b border-[#E5E5E5] hover:bg-[#162218] hover:text-white transition cursor-pointer">
-                <td className="py-4 px-4 text-start">{a.description ?? "-"}</td>
-                <td className="py-4 px-4 text-center">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
-                <td className="py-4 px-4 text-center">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
-                <td className="py-4 px-4 text-end">{a.status ?? "-"}</td>
-                <td className="py-4 px-4 text-right">
+              <tr key={a.id} className="hover:bg-[#162218] hover:text-white transition cursor-pointer">
+                <td className="p-4 text-start">{a.description ?? "-"}</td>
+                <td className="p-4 text-center">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
+                <td className="p-4 text-center">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
+                <td className="p-4 text-end">{a.status ?? "-"}</td>
+                <td className="p-4 text-right">
                     <div className="flex gap-6 justify-end">
                       <Link
                         href={`/auctions/info/${a.id}`}
