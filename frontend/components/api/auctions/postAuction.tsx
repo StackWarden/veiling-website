@@ -32,6 +32,7 @@ export default function PostAuction() {
           className="w-full max-w-3xl space-y-8"
         >
           <h1 className="text-3xl font-bold text-center">Create Auction</h1>
+          
           {/* Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
