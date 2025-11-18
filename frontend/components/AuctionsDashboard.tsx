@@ -55,7 +55,6 @@ export default function AuctionsDashboard() {
 
 
     <div className="w-full max-w-[90rem] px-4">
-
         <div className="flex items-center mb-6 w-full pt-8 pb-4">
           {/* spacer div */}
           <div className="flex-1" />
@@ -133,4 +132,3 @@ export default function AuctionsDashboard() {
   </section>
   );
 }
-

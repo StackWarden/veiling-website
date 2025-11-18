@@ -1,13 +1,19 @@
+"use client";
 
-import Container from "@/components/container";
-import GetAuctions from "@/components/api/auctions/getAuctions";
+import { useEffect } from "react";
 
 export default function Home() {
-  return (
-    <div>
-        <Container>
-          <GetAuctions />
-        </Container>
-    </div>
-  );
+  useEffect(() => {
+    const token = localStorage.getItem("jwt");
+
+    if (token) {
+      window.location.href = "/auctions";
+    }
+    
+    if (!token) {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  return null;
 }
