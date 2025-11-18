@@ -56,11 +56,11 @@ export default function AuctionsDashboard() {
 
     <div className="w-full max-w-[90rem] px-4">
 
-        <div className="flex items-center mb-6 w-full">
+        <div className="flex items-center mb-6 w-full pt-8 pb-4">
           {/* spacer div */}
           <div className="flex-1" />
 
-          <h1 className="text-[32px] font-bold text-[#162218] text-center flex-1">
+          <h1 className="text-[64px] font-bold text-[#162218] text-center flex-[3]">
             Auction Schedule
           </h1>
 
