@@ -1,11 +1,11 @@
 import Header from "@/components/header";
-import Productinfo from "@/components/Productinfo"
+import Productedit from "@/components/ProductEdit"
 
 export default function Live() {
   return (
     <>
       <Header />
-      <Productinfo />
+      <Productedit />
     </>
   );
 }

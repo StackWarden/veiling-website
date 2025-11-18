@@ -1,7 +1,7 @@
 import Header from "@/components/header";
-import Productinfo from "@/components/Productinfo"
+import Productinfo from "@/components/Productinfo";
 
-export default function Live() {
+export default function ProductInfoPage() {
   return (
     <>
       <Header />
