@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useGet from "./api/get";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-
 
 type Auction = {
-  id: string;
+    id: string;
     description?: string;
     startTime?: string;
     endTime?: string;
@@ -17,16 +14,13 @@ type Auction = {
 export default function AuctionsDashboard() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(false);
-  const { data, error } = useGet<Auction>({ route: "/auctions" });
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const router = useRouter();
 
   const fetchAuctions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Auctions`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auctions`);
       const data = await res.json();
-      setAuctions(data);
+      setAuctions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching auctions:", err);
     } finally {
@@ -36,48 +30,39 @@ export default function AuctionsDashboard() {
 
   
  useEffect(() => {
-   if (data && data.length) setAuctions(data);
-  }, [data]);
+   fetchAuctions();
+  }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this auction?")) return;
 
-    const handleRowSelect = (id: string) => {
-    if (!id) return;
-    setSelectedId((prev) => (prev === id ? null : id));
-  }
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auctions/${id}`, {
+        method: "DELETE",
+      });
 
-  const handleRowOpen = (id?: string) => {
-    if (!id) return;
-    router.push(`/auctions/${id}`);
-  };
+      setAuctions((prev) => prev.filter((a) => a.id !== id));
 
-  const handleEdit = (id?: string) => {
-    if (!id) return;
-    router.push(`/auctions/${id}/edit`);
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+    }
   };
 
   return (
 
-  <div className="w-full h-full bg-white ">
+  <section className="w-full flex flex-col items-center mt-12 px-4">
 
-          <h1 className="text-[64px] font-semibold text-center mb-1">Auction Schedule</h1>     
+    <h1 className="text-[32px] font-bold mb-0 text-[#162218]">Auction Schedule</h1>     
 
-          <div className="flex justify-center overflow-x-auto">
-            {loading ? (
-              <p className="p-4 text-gray-500">Loading...</p>
-          ) : ( 
-                  <section className="bg-white rounded-xl shadow-md p-6 w-full max-w-5xl">
-      <div className="flex justify-end items-center mb-4">
-                   
-        <div className="flex justify-end">
+      <div className="w-full max-w-[90rem] px-4">
+
+        <div className="flex justify-end mb-6">
           <Link href ="auctions/create">
             <button 
               className="flex flex-row items-center gap-2 p-1 hover:bg-gray-300 rounded-full"
               aria-label="Create auction"
             > 
-            <span className="text-black font-medium">Create Auction</span>
+            <span className="text-[#162218] font-medium">Create Auction</span>
 
               <svg 
               width="30" 
@@ -90,69 +75,61 @@ export default function AuctionsDashboard() {
             </button>
          </Link>
         </div>
-      </div>
-      {auctions.length === 0 ? (
-        <p className="text-gray-500">No auctions available.</p>
+
+      {loading ? (
+        <p className="text-gray-500 text-center py-6">Loading auctions...</p>
+      ) : auctions.length === 0 ? (
+        <p className="text-gray-500 text-center py-6">No auctions available.</p>
       ) : (
-      <div className="rounded-lg overflow-hidden border border-black">
-        <table className="w-full text-center">
-          <thead>
-            <tr>
-              <th className="bg-white text-black p-2"></th>
-              <th className="bg-white text-black p-2">Description</th>
-              <th className="bg-white text-black p-2">Start Date</th>
-              <th className="bg-white text-black p-2">End Date</th>
-              <th className="bg-white text-black p-2">Status</th>
-              <th className="bg-white text-black p-2"></th>
+        <div className="overflow-hidden rounded-xl border border-[D9D9D9]">
+          <table className="w-full border-collapse text-left">
+
+          <thead className="bg-white">
+            <tr className="border-b border-[D9D9D9] text-[#4D4D4D]">
+
+              <th className="p-3 px-4">Description</th>
+              <th className="p-3 px-4">Start Date</th>
+              <th className="p-3 px-4">End Date</th>
+              <th className="p-3 px-4">Status</th>
             </tr>
           </thead>
-          <tbody>
+
+          <tbody className="bg-white text-[1A1A1A]">
+
             {auctions.map((a) => {
-              const isSelected = selectedId === a.id;
-              const trClass = `cursor-pointer ${isSelected ? "bg-black text-white" : "hover:bg-gray-100"} rounded-full px-2 py-1`;
               return (
-              <tr key={a.id} 
-                role="button"
-                tabIndex={0}
-                aria-pressed={isSelected}
-                aria-label={a.description ? `Select auction: ${a.description}` : `Select auction ${a.id}`}
-                onClick={() => handleRowSelect(a.id)}
-                onDoubleClick={() => handleRowOpen(a.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleRowSelect(a.id);
-                  }
-                }}
-              className={trClass} >
-                <td className="bg-white text-black p-2"></td>
-                <td className="rounded-l p-2">{a.description ?? "-"}</td>
-                <td className="p-2">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
-                <td className="p-2">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
-                <td className="rounded-r p-2">{a.status ?? "-"}</td>
-                <td className="bg-white text-black p-2">
-                  {isSelected && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(a.id)
-                    }}
-                    aria-label={a.description ? `Edit ${a.description}` : `Edit auction ${a.id}`}
-                  >
-                    <img src="/edit.png" alt="Edit" className="w-5 h-5 inline-block" />
-                  </button>
-                  )}
-                </td>
+              <tr key={a.id} className="border-b border-[#E5E5E5] hover:bg-[#162218] hover:text-white transition cursor-pointer">
+                <td className="py-4 px-4">{a.description ?? "-"}</td>
+                <td className="py-4 px-4">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
+                <td className="py-4 px-4">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
+                <td className="py-4 px-4">{a.status ?? "-"}</td>
+                <td className="py-4 px-4 text-right">
+                    <div className="flex gap-6 justify-end">
+                      <Link
+                        href={`/auctions/info/${a.id}`}
+                        className="hover:underline underline-offset-2"
+                      >
+                        Edit 
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(a.id)}
+                        className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                        type="button"
+                      >
+                        Delete 
+                      </button>
+                    </div> 
+                  </td>
               </tr>
               )
             })}
           </tbody>
         </table>
-      </div>
+        </div>
       )}
-              </section>
-            )}
-          </div>
+
       </div>
+  </section>
   );
 }
+
