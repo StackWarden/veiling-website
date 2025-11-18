@@ -32,8 +32,6 @@ export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
-  
-
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -59,9 +57,7 @@ export default function ProductList() {
         method: "DELETE",
       });
 
-    
       setProducts((prev) => prev.filter((p) => p.id !== id));
-
     } catch (err) {
       console.error("Failed to delete product:", err);
     }
@@ -70,84 +66,110 @@ export default function ProductList() {
   return (
     <section className="w-full flex flex-col items-center mt-12 px-4">
       <div className="w-full max-w-[90rem] px-4">
+        {/* Title + Add button – same layout style as AuctionsDashboard */}
+        <div className="flex items-center mb-6 w-full pt-8 pb-4">
+          {/* left spacer */}
+          <div className="flex-1" />
 
-        {/* add product button */}
-        <div className="relative w-full max-w-[90rem] px-4 mb-6 flex items-end">
-            
-            {/* Centered title */}
-            <h1 className="absolute left-1/2 -translate-x-1/2 text-[32px] font-bold text-[#162218]">
-              Products
-            </h1>
+          {/* centered title */}
+          <h1 className="text-[64px] font-bold text-[#162218] text-center flex-[3]">
+            Products
+          </h1>
 
-            {/* Add product button (right aligned) */}
-            <div className="ml-auto">
-              <Link href="/products/create">
-                <button 
-                  aria-label="Add Product"
-                  className="bg-[#0F1C14] text-white w-10 h-10 rounded-md text-xl font-bold"
-                >
-                  +
-                </button>
-              </Link>
-            </div>
+          {/* right aligned button */}
+          <div className="flex-1 flex justify-end">
+            <Link href="/products/create">
+              <p
+                className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
+                aria-label="Create Product"
+              >
+                <span className="text-[#162218] font-medium">Create Product</span>
 
+                <Image
+                  src="/images/Plus.svg"
+                  alt="Create Product Icon"
+                  width={40}
+                  height={40}
+                  priority
+                />
+              </p>
+            </Link>
           </div>
-      {loading ? (
-        <p className="text-gray-500 text-center py-6">Loading products...</p>
-      ) : products.length === 0 ? (
-        <p className="text-gray-500 text-center py-6">No products available.</p>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-[D9D9D9]">
-          <table className="w-full table-fixed border-collapse text-left">
-
-            {/* tabel header */}
-            <thead className="bg-white">
-              <tr className="border-b border-[#D9D9D9] text-[#162218]">
-                <th className="py-3 text-center w-1/6">Species</th>
-                <th className="py-3 text-center w-1/6">Quantity</th>
-                <th className="py-3 text-center w-1/6">Price (€)</th>
-                <th className="py-3 text-center w-1/6">Location</th>
-                <th className="py-3 text-center w-1/6">Auction Date</th>
-                <th className="py-3 text-center w-1/6">Actions</th>
-              </tr>
-            </thead>
-
-            {/* tabel body */}
-            <tbody className="bg-white text-[#1A1A1A]">
-              {products.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b rounded-md border-[#E5E5E5] hover:bg-[#162218] hover:text-white transition"
-                >
-                  <td className="py-4 text-center truncate rounded-l-lg">{p.species}</td>
-                  <td className="py-4 text-center truncate">{p.quantity}</td>
-                  <td className="py-4 text-center truncate">€{p.minPrice.toFixed(2)}</td>
-                  <td className="py-4 text-center truncate">{getClockLocationName(p.clockLocation)}</td>
-                  <td className="py-4 text-center truncate">{p.auctionDate ?? "-"}</td>
-
-                  <td className="py-4 rounded-r-lg">
-                    <div className="flex gap-6 justify-center">
-                      <Link
-                        href={`/products/info/${p.id}`}
-                        className="hover:underline underline-offset-2"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                        type="button"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
-      )}
+
+        {loading ? (
+          <p className="text-gray-500 text-center py-6">Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className="text-gray-500 text-center py-6">No products available.</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-[D9D9D9] p-4">
+            <table className="w-full border-collapse text-left">
+              {/* Header */}
+              <thead className="bg-white">
+                <tr className="text-[#4D4D4D]">
+                  <th className="p-3 text-start">Species</th>
+                  <th className="p-3 text-center">Quantity</th>
+                  <th className="p-3 text-center">Price (€)</th>
+                  <th className="p-3 text-center">Location</th>
+                  <th className="p-3 text-center">Auction Date</th>
+                  <th className="p-3 text-end">Actions</th>
+                </tr>
+              </thead>
+
+              {/* Body */}
+              <tbody className="bg-white text-[1A1A1A]">
+                {products.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-[#162218] hover:text-white transition cursor-pointer"
+                    onClick={() => window.location.href = `/products/info/${p.id}`}
+                  >
+                    <td className="p-4 text-start rounded-l-2xl">
+                      {p.species}
+                    </td>
+
+                    <td className="p-4 text-center">{p.quantity}</td>
+
+                    <td className="p-4 text-center">
+                      €{p.minPrice.toFixed(2)}
+                    </td>
+
+                    <td className="p-4 text-center">
+                      {getClockLocationName(p.clockLocation)}
+                    </td>
+
+                    <td className="p-4 text-center">
+                      {p.auctionDate ?? "-"}
+                    </td>
+
+                    <td className="p-4 text-end rounded-r-2xl">
+                      <div className="flex gap-6 justify-end">
+                        <Link
+                          href={`/products/edit/${p.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:underline underline-offset-2"
+                        >
+                          Edit
+                        </Link>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(p.id);
+                          }}
+                          className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );
