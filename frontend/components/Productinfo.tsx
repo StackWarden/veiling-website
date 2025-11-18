@@ -87,17 +87,17 @@ export default function ProductInfo() {
 
       <div className="flex gap-16">
         {/* foto */}
-        <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9]">
+        <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9] w-[350px] h-[350px]">
           {product.photoUrl ? (
             <Image
               src={product.photoUrl}
               alt={product.species}
-              width={400}
-              height={400}
-              className="object-cover w-[350px] h-[350px]"
+              width={350}
+              height={350}
+              className="object-cover w-full h-full"
             />
           ) : (
-            <div className="w-[350px] h-[350px] bg-gray-100 flex items-center justify-center text-gray-400">
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
               No Photo
             </div>
           )}
