@@ -114,13 +114,12 @@ export default function AuctionsDashboard() {
                           >
                             Edit 
                           </Link>
-                          <button
+                          <p
                             onClick={() => handleDelete(a.id)}
-                            className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                            type="button"
+                            className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
                           >
                             Delete 
-                          </button>
+                          </p>
                         </div> 
                     </td>
                   </tr>
