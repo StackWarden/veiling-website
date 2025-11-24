@@ -34,6 +34,7 @@ public class AuctionController : Controller
     // In theorie zou je hier nog pagination, filtering of caching kunnen toevoegen,
     // maar hé, laten we niet te ambitieus doen voor een simpele GET-endpoint.
     [HttpGet]
+    [Authorize]
     public IActionResult GetAllAuctions()
     {
         var auctions = _db.Auctions.ToList();
@@ -46,6 +47,7 @@ public class AuctionController : Controller
     // want blijkbaar kan je niet iets ophalen wat niet bestaat (wie had dat gedacht).
     // Anders gooien we het gewoon terug met een Ok(), helemaal volgens het boekje.
     [HttpGet("{id}")]
+    [Authorize]
     public IActionResult GetAuctionById(Guid id)
     {
         var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);

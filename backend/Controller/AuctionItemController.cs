@@ -19,6 +19,7 @@ public class AuctionItemController : Controller
 
     // GET: /AuctionItem
     [HttpGet]
+    [Authorize]
     public IActionResult GetAllAuctionItems()
     {
         var auctionItems = _db.AuctionItems.ToList();
@@ -27,6 +28,7 @@ public class AuctionItemController : Controller
 
     // GET: /AuctionItem/{id}
     [HttpGet("{id}")]
+    [Authorize]
     public IActionResult GetAuctionItemById(Guid id)
     {
         var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
