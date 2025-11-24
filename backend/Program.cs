@@ -141,6 +141,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    await DatabaseSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();

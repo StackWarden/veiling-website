@@ -139,26 +139,38 @@ public class AuthController : ControllerBase
     // Genereert een JWT-token met de user-ID als subject.
     // Gebruikt het geheime wachtwoord uit je .env (hopelijk niet hardcoded).
     // Resultaat: een versleutelde string waarmee de user kan doen alsof hij legitiem is.
-    private string GenerateJwtToken(string username)
+    private string GenerateJwtToken(string userId)
     {
         var secret = Environment.GetEnvironmentVariable("JWT_SECRET");
-        var claims = new[]
+
+        if (string.IsNullOrWhiteSpace(secret))
+            throw new Exception("JWT secret is missing from configuration.");
+
+        // Find user and roles
+        User user = _userManager.Users.First(u => u.Id.ToString() == userId);
+        var roles = _userManager.GetRolesAsync(user).Result;
+
+        // Create claims
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, username),
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-        if (string.IsNullOrWhiteSpace(secret)) {
-            throw new Exception("JWT secret is missing from configuration.");
-        }
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var token = new JwtSecurityToken(
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim("roles", role));
+        }
+        SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        SigningCredentials creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        JwtSecurityToken token = new JwtSecurityToken(
             issuer: Environment.GetEnvironmentVariable("DOMAIN"),
             audience: Environment.GetEnvironmentVariable("DOMAIN"),
             claims: claims,
-            expires: DateTime.Now.AddMinutes(30),
-            signingCredentials: creds);
+            expires: DateTime.UtcNow.AddMinutes(60),
+            signingCredentials: creds
+        );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
