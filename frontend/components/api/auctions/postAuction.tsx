@@ -26,42 +26,63 @@ export default function PostAuction() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold text-center mb-6">Create Auction</h1>
-
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-        <div className="flex flex-col">
-          <label htmlFor="startTime" className="text-gray-700 mb-1">Start Time</label>
-          <input
-            type="datetime-local"
-            id="startTime"
-            value={auction.startTime.slice(0, 16)}
-            onChange={(e) => handleChange("startTime", e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label htmlFor="endTime" className="text-gray-700 mb-1">End Time</label>
-          <input
-            type="datetime-local"
-            id="endTime"
-            value={auction.endTime.slice(0, 16)}
-            onChange={(e) => handleChange("endTime", e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      <div className="flex justify-center items-start px-6 pt-8">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-3xl space-y-8"
         >
-          {loading ? "Posting..." : "Create Auction"}
-        </button>
-      </form>
+          <h1 className="text-3xl font-bold text-center">Create Auction</h1>
+          
+          {/* Grid layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-      {error && <p className="text-red-600 text-center mt-4">{error}</p>}
-      {success && <p className="text-green-600 text-center mt-4">Auction created successfully!</p>}
-      </>
+            {/* Start Time */}
+            <div className="flex flex-col">
+              <label className="font-semibold">Start Time</label>
+              <input
+                type="datetime-local"
+                value={auction.startTime.slice(0, 16)}
+                onChange={(e) => handleChange("startTime", e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+              />
+            </div>
+
+            {/* End Time */}
+            <div className="flex flex-col">
+              <label className="font-semibold">End Time</label>
+              <input
+                type="datetime-local"
+                value={auction.endTime.slice(0, 16)}
+                onChange={(e) => handleChange("endTime", e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+              />
+            </div>
+
+          </div>
+
+          {/* Button */}
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-40 bg-[#162218] text-white py-3 rounded-lg font-semibold hover:bg-[#0f1c14] transition"
+            >
+              {loading ? "Posting..." : "Create Auction"}
+            </button>
+          </div>
+
+          {/* Status messages */}
+          {error && (
+            <p className="text-red-600 text-center font-semibold">{error}</p>
+          )}
+          {success && (
+            <p className="text-green-600 text-center font-semibold">
+              Auction created successfully!
+            </p>
+          )}
+
+        </form>
+      </div>
+    </>
   );
 }

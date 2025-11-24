@@ -28,134 +28,152 @@ export default function AddProduct() {
   const [minPrice, setMinPrice] = useState("");
   const [clockLocation, setClockLocation] = useState(ClockLocation.Aalsmeer);
   const [photo, setPhoto] = useState<File | null>(null);
+
   const { error, success, postData } = usePostData<Product>("/products");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     const potSize = `${potHeight}mm x ${potDiameter}mm`;
 
-    const product: Product = {
-        species,
-        potSize,
-        stemLength: Number(stemLength),
-        quantity: Number(quantity),
-        minPrice: Number(minPrice),
-        clockLocation,
-        photoUrl: photo ? photo.name : "",
-    };
-
-    await postData(product)
+    await postData({
+      species,
+      potSize,
+      stemLength: Number(stemLength),
+      quantity: Number(quantity),
+      minPrice: Number(minPrice),
+      clockLocation,
+      photoUrl: photo ? photo.name : "",
+    });
   };
 
   return (
-    <>
-      <h1 className="text-2xl font-semibold text-center mb-6">Create Product</h1>
+    <div className="flex justify-center items-start px-6 pt-8">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-3xl space-y-6"
+      >
+        <h1 className="text-3xl font-bold text-start">Create Product</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-        {success && <p className="text-green-600 text-center">Product added successfully</p>}
-        {error && <p className="text-red-600 text-center">{error}</p>}
+        {success && (
+          <p className="text-green-600 text-center font-semibold">
+            Product added successfully
+          </p>
+        )}
+        {error && (
+          <p className="text-red-600 text-center font-semibold">{error}</p>
+        )}
 
-        <div className="flex flex-col">
-          <label htmlFor="species" className="text-gray-700 mb-1">Species</label>
-          <input
-            type="text"
-            id="species"
-            onChange={(e) => setSpecies(e.target.value)}
-            placeholder="Enter the species"
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label htmlFor="potHeight" className="text-gray-700 mb-1">Pot height (mm)</label>
-            <input
-              type="number"
-              id="potHeight"
-              onChange={(e) => setPotHeight(e.target.value)}
-              className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-              required
-            />
+          {/* LEFT SIDE */}
+          <div className="space-y-4">
+            <div>
+              <label className="font-semibold">Species</label>
+              <input
+                type="text"
+                onChange={(e) => setSpecies(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold">Stem Length (cm)</label>
+              <input
+                type="number"
+                onChange={(e) => setStemLength(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold">Minimum Price (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                required
+              />
+            </div>
           </div>
-          <div className="flex flex-col">
-            <label htmlFor="potDiameter" className="text-gray-700 mb-1">Pot diameter (mm)</label>
-            <input
-              type="number"
-              id="potDiameter"
-              onChange={(e) => setPotDiameter(e.target.value)}
-              className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-              required
-            />
+
+          {/* RIGHT SIDE */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold">Pot height (mm)</label>
+                <input
+                  type="number"
+                  onChange={(e) => setPotHeight(e.target.value)}
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold">Pot diameter (mm)</label>
+                <input
+                  type="number"
+                  onChange={(e) => setPotDiameter(e.target.value)}
+                  className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="font-semibold">Quantity</label>
+              <input
+                type="number"
+                onChange={(e) => setQuantity(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold">Clock Location</label>
+              <select
+                value={clockLocation}
+                onChange={(e) =>
+                  setClockLocation(e.target.value as ClockLocation)
+                }
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2 bg-white"
+              >
+                {Object.values(ClockLocation).map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="font-semibold">Upload photo</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+                className="mt-1 w-full border border-gray-300 rounded-lg p-2"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col">
-          <label htmlFor="stemLength" className="text-gray-700 mb-1">Stem Length (cm)</label>
-          <input
-            type="number"
-            id="stemLength"
-            onChange={(e) => setStemLength(e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label htmlFor="quantity" className="text-gray-700 mb-1">Quantity</label>
-          <input
-            type="number"
-            id="quantity"
-            onChange={(e) => setQuantity(e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label htmlFor="minPrice" className="text-gray-700 mb-1">Minimum Price (€)</label>
-          <input
-            type="number"
-            step="0.01"
-            id="minPrice"
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <label htmlFor="clockLocation" className="text-gray-700 mb-1">Clock Location</label>
-          <select
-            id="clockLocation"
-            value={clockLocation}
-            onChange={(e) => setClockLocation(e.target.value as ClockLocation)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+        {/* BUTTON */}
+        <div className="flex w-full">
+          <button
+            type="submit"
+            className="w-full bg-[#162218] text-white py-3 rounded-lg font-semibold hover:bg-[#0f1c14] transition"
           >
-            {Object.values(ClockLocation).map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-          </select>
+            Submit
+          </button>
         </div>
-
-        <div className="flex flex-col">
-          <label htmlFor="photo" className="text-gray-700 mb-1">Upload Photo</label>
-          <input
-            type="file"
-            id="photo"
-            accept="image/*"
-            onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-            className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Submit
-        </button>
       </form>
-    </>
+    </div>
   );
 }

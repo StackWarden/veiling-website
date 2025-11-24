@@ -1,7 +1,7 @@
 "use client";
-
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function Login() {
   const searchParams = useSearchParams();
@@ -22,19 +22,15 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
-      const token = await res.text();
-
       if (!res.ok) {
-        throw new Error(token || "Login failed");
+        const message = await res.text();
+        throw new Error(message || "Login failed");
       }
 
-      if (!token || token.trim().length < 20) {
-        throw new Error("Invalid token received from server.");
-      }
-
-      localStorage.setItem("jwt", token);
+      setInfo("Login successful, redirecting...");
 
       window.location.href = "/";
     } catch (err) {
@@ -47,12 +43,14 @@ return (
     {/* Groene hoofdcontainer met witte rand */}
     <div className="relative flex w-full max-w-[97%] max-h-[97vh] bg-[#0f1c14] rounded-[20px] overflow-hidden shadow-2xl border border-white">
       {/*linkerkant met image */}
-      <div className="relative w-[50%] hidden md:block p-[2px]">
+     <div className="relative w-[50%] hidden md:block p-[2px]">
         <div className="rounded-[18px] overflow-hidden h-full">
-        <img
-          src="/leaves.png"
-          alt="Green leaves"
-          className="object-cover w-full h-full"
+          <Image
+            src="/leaves.png"
+            alt="Green leaves"
+            width={800}
+            height={800}
+            className="object-cover w-full h-full"
           />
         </div>
       </div>
@@ -63,11 +61,13 @@ return (
         <div className="bg-white rounded-[20px] shadow-2xl p-10 w-full max-w-md mx-6">
         {/* logo boven */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#0f1c14] rounded-full p-6 flex items-center justify-center">
-              <img 
+            <div className="bg-[#0f1c14] rounded-full p-1 flex items-center">
+              <Image 
               src="/logo.png" 
               alt="logo" 
-              className="w-10 h-10" 
+              width={40}
+              height={40}
+              className="w-14 h-14" 
               />
             </div>
           </div>

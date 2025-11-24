@@ -8,5 +8,5 @@ public class AuctionItem
     public Auction Auction { get; set; } = null!;
     public Product Product { get; set; } = null!;
     public int LotNumber { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
 }
