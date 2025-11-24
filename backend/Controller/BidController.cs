@@ -22,7 +22,6 @@ public class BidController : Controller
     // POST: /bids/place
     // Plaatst een nieuw bod op een veiling.
     // Valideert de input heel minimaal, want blijkbaar vertrouwen we gebruikers nog steeds.
-    // Zodra JWT is geïmplementeerd, kan de IgnoreAntiforgeryToken er eindelijk uit.
     [HttpPost("place")]
     [Authorize(Roles = "buyer,supplier,admin")]
     public IActionResult PlaceBid([FromForm] PlaceBidDto dto)

@@ -63,7 +63,6 @@ public class AuctionController : Controller
     // en natuurlijk direct opgeslagen zonder ingewikkelde repositories of fancy patterns.
     // Uiteindelijk gooien we een Ok() terug met het ID, zodat iedereen blij is.
     [HttpPost]
-    [IgnoreAntiforgeryToken]
     [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
     {
@@ -93,7 +92,6 @@ public class AuctionController : Controller
     // Vervolgens worden de velden netjes overschreven en alles opgeslagen met SaveChanges(),
     // oftewel: de standaard “ja dit hoort eigenlijk in een service-laag” aanpak.
     [HttpPut("{id}")]
-    [IgnoreAntiforgeryToken]
     [Authorize(Roles = "auctioneer,admin")]
     public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionDto dto)
     {
