@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Db;
 using backend.Db.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace backend.Controllers;
 
@@ -12,10 +14,12 @@ public class SaleResultsController : Controller
     public SaleResultsController(AppDbContext db) => _db = db;
 
     [HttpGet("")]
+    [Authorize]
     public async Task<IActionResult> Index()
         => Ok(await _db.SaleResults.AsNoTracking().ToListAsync());
 
     [HttpGet("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid id)
     {
         var s = await _db.SaleResults.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
@@ -23,6 +27,7 @@ public class SaleResultsController : Controller
     }
 
     [HttpPost("")]
+    [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateSaleResultDto dto)
     {
         if (dto.Quantity <= 0) return BadRequest("Quantity must be > 0.");
@@ -48,6 +53,7 @@ public class SaleResultsController : Controller
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSaleResultDto dto)
     {
         var s = await _db.SaleResults.FirstOrDefaultAsync(x => x.Id == id);
@@ -66,6 +72,7 @@ public class SaleResultsController : Controller
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
         var s = await _db.SaleResults.FirstOrDefaultAsync(x => x.Id == id);
