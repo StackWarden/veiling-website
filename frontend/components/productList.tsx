@@ -56,7 +56,7 @@ export default function ProductList() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Available Products</h2>
 
-        <Link href="/products/create">
+        <Link href="/secure/products/create">
           <button
             className="p-2 rounded-full hover:bg-gray-100 transition flex items-center justify-center border border-gray-300"
             aria-label="Add product"

@@ -110,7 +110,7 @@ export default function AuctionsDashboard() {
                     <td className="p-4 text-right rounded-r-2xl">
                         <div className="flex gap-6 justify-end">
                           <Link
-                            href={`/auctions/info/${a.id}`}
+                            href={`/secure/auctions/info/${a.id}`}
                             className="hover:underline underline-offset-2"
                           >
                             Edit 

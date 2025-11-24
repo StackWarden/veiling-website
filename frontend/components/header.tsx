@@ -66,10 +66,10 @@ export default function Header() {
                 <nav className="flex items-center gap-8 text-base font-semibold">
 
                     <a
-                        href="/products"
+                        href="/secure/products"
                         className={
                             // Als de current path overeenkomt wordt deze underlined
-                            isActive("/products")
+                            isActive("/secure/products")
                                 ? "underline underline-offset-4"
                                 : "hover:text-gray-600 transition"
                         }
@@ -78,9 +78,9 @@ export default function Header() {
                     </a>
 
                     <a
-                        href="/auctions"
+                        href="/secure/auctions"
                         className={
-                            isActive("/auctions")
+                            isActive("/secure/auctions")
                                 ? "underline underline-offset-4"
                                 : "hover:text-gray-600 transition"
                         }
