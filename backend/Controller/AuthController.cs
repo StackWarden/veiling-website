@@ -159,7 +159,7 @@ public class AuthController : ControllerBase
 
         foreach (var role in roles)
         {
-            claims.Add(new Claim("roles", role));
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
         SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         SigningCredentials creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -23,7 +23,6 @@ public class SaleResultsController : Controller
     }
 
     [HttpPost("")]
-    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Create([FromBody] CreateSaleResultDto dto)
     {
         if (dto.Quantity <= 0) return BadRequest("Quantity must be > 0.");
@@ -49,7 +48,6 @@ public class SaleResultsController : Controller
     }
 
     [HttpPut("{id:guid}")]
-    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSaleResultDto dto)
     {
         var s = await _db.SaleResults.FirstOrDefaultAsync(x => x.Id == id);
@@ -68,7 +66,6 @@ public class SaleResultsController : Controller
     }
 
     [HttpDelete("{id:guid}")]
-    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Delete(Guid id)
     {
         var s = await _db.SaleResults.FirstOrDefaultAsync(x => x.Id == id);

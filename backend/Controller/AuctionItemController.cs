@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -37,7 +38,7 @@ public class AuctionItemController : Controller
 
     // POST: /AuctionItem
     [HttpPost]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuctionItem([FromBody] CreateAuctionItemDto dto)
     {
         var auctionItem = new AuctionItem();
@@ -70,7 +71,7 @@ public class AuctionItemController : Controller
 
     // PUT: /AuctionItem/{id}
     [HttpPut("{id}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult UpdateAuctionItem(Guid id, [FromBody] CreateAuctionItemDto dto)
     {
         var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
@@ -87,7 +88,7 @@ public class AuctionItemController : Controller
 
     // DELETE: /AuctionItem/{id}
     [HttpDelete("{id}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult DeleteAuctionItem(Guid id)
     {
         var auctionItem = _db.AuctionItems.Find(id);

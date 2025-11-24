@@ -19,7 +19,9 @@ export default function AuctionsDashboard() {
   const fetchAuctions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auctions`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auctions`, {
+          credentials: "include",
+      });
       const data = await res.json();
       setAuctions(Array.isArray(data) ? data : []);
     } catch (err) {
