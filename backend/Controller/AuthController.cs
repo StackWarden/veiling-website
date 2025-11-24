@@ -135,7 +135,43 @@ public class AuthController : ControllerBase
 
         return Ok($"User {user.Name} registered successfully.");
     }
+    [HttpGet("debug")]
+    public IActionResult Debug()
+    {
+        var claims = User.Claims
+            .Select(c => new { c.Type, c.Value })
+            .ToList();
 
+        var rolesFromClaims = claims
+            .Where(c => c.Type.Contains("role"))
+            .Select(c => c.Value)
+            .ToList();
+
+        var isAdmin = User.IsInRole("admin");
+        var isSupplier = User.IsInRole("supplier");
+        var isAuctioneer = User.IsInRole("auctioneer");
+
+        return Ok(new
+        {
+            AuthenticationType = User.Identity?.AuthenticationType,
+            IsAuthenticated = User.Identity?.IsAuthenticated,
+            Name = User.Identity?.Name,
+
+            // dump all claims
+            Claims = claims,
+
+            // role claims from JWT
+            RoleClaims = rolesFromClaims,
+
+            // ASP.NET role checks
+            IsInRole = new
+            {
+                Admin = isAdmin,
+                Supplier = isSupplier,
+                Auctioneer = isAuctioneer
+            }
+        });
+    }
     // Genereert een JWT-token met de user-ID als subject.
     // Gebruikt het geheime wachtwoord uit je .env (hopelijk niet hardcoded).
     // Resultaat: een versleutelde string waarmee de user kan doen alsof hij legitiem is.
@@ -159,7 +195,7 @@ public class AuthController : ControllerBase
 
         foreach (var role in roles)
         {
-            claims.Add(new Claim("roles", role));
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
         SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         SigningCredentials creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -23,6 +23,7 @@ export function usePostData<T extends object>(
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${route}`, {
+        credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

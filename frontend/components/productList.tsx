@@ -35,7 +35,9 @@ export default function ProductList() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+          credentials: "include",
+      });
       const data = await res.json();
       setProducts(data);
     } catch (err) {

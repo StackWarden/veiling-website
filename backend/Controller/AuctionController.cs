@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -63,6 +64,7 @@ public class AuctionController : Controller
     // Uiteindelijk gooien we een Ok() terug met het ID, zodat iedereen blij is.
     [HttpPost]
     [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
     {
         if (dto.EndTime <= dto.StartTime) {
@@ -92,6 +94,7 @@ public class AuctionController : Controller
     // oftewel: de standaard “ja dit hoort eigenlijk in een service-laag” aanpak.
     [HttpPut("{id}")]
     [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionDto dto)
     {
         var auction = _db.Auctions.Find(id);
@@ -117,6 +120,7 @@ public class AuctionController : Controller
     // Bestaat hij wel, dan gooien we ‘m uit de database en slaan dat op alsof er nooit iets gebeurd is.
     // Kortom: de digitale equivalent van “weg is weg”.
     [HttpDelete("{id}")]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult DeleteAuction(Guid id)
     {
         var auction = _db.Auctions.Find(id); // Dit zoekt en geeft terug wat ie vind, als dat niks is geeft het dus ook null terug
