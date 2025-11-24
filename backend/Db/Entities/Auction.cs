@@ -7,6 +7,5 @@ public class Auction
     public DateTime StartTime { get; set; } = new();
     public DateTime EndTime { get; set; } = new();
     public string Status { get; set; } = "Scheduled";
-
     public ICollection<AuctionItem> AuctionItems { get; set; } = new List<AuctionItem>();
 }

@@ -65,6 +65,9 @@ public class AuctionController : Controller
     [IgnoreAntiforgeryToken]
     public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
     {
+        if (dto == null) {
+            return BadRequest("Request body is required.");
+        }
         if (dto.EndTime <= dto.StartTime) {
             return BadRequest("End time must be after start time.");
         }
@@ -80,7 +83,7 @@ public class AuctionController : Controller
         _db.Auctions.Add(auction);
         _db.SaveChanges();
 
-        return Ok($"Auction {auction.Id} created successfully.");
+        return CreatedAtAction(nameof(GetAuctionById), new { id = auction.Id }, auction);
     }
 
     // PUT: /auctions/{id}
