@@ -7,12 +7,15 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Threading.Tasks;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load();
+var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+
+Env.Load(envFilePath);
+
+var isTesting = builder.Environment.IsEnvironment("Testing");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -51,22 +54,25 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-    options.UseSqlServer(connectionString);
-});
+    builder.Services.AddDbContext<AppDbContext>(options =>
+    {
+        if (!isTesting)
+        {
+            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+            options.UseSqlServer(connectionString);
+        }
+    });
 
-builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
-{
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+    builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -142,3 +148,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Allow tests to boot up API
+public partial class Program { }
