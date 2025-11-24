@@ -29,7 +29,7 @@ export default function AddProduct() {
   const [clockLocation, setClockLocation] = useState(ClockLocation.Aalsmeer);
   const [photo, setPhoto] = useState<File | null>(null);
 
-  const { error, success, postData } = usePostData<Product>("/products");
+  const { error, success, postData } = usePostData<Product>("/secure/products");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

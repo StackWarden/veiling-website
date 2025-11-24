@@ -8,7 +8,7 @@ interface Auction {
 }
 
 export default function PostAuction() {
-  const { loading, error, success, postData } = usePostData<Auction>("/auctions");
+  const { loading, error, success, postData } = usePostData<Auction>("/secure/auctions");
 
   const [auction, setAuction] = useState<Auction>({
     startTime: new Date().toISOString(),
