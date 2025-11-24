@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import RoleGate from "./roleGate";
+import { RoleGate } from "./roleGate";
 
 type Auction = {
     id: string;
@@ -66,22 +66,22 @@ export default function AuctionsDashboard() {
             Auction Schedule
           </h1>
 
-          <RoleGate allow={["admin", "auctioneer"]}>
-          <Link href="auctions/create" className="flex-1 flex justify-end">
-            <p 
-              className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
-              aria-label="Create auction"
-            > 
-              <span className="text-[#162218] font-medium">Create Auction</span>
-              <Image
-                src="/images/Plus.svg"
-                alt="Create Auction Icon"
-                width={40}
-                height={40}
-                priority
-              />
-            </p>
-          </Link>
+          <RoleGate allow={["auctioneer"]} fallback={<div className="flex-1 flex justify-end" />}>
+            <Link href="auctions/create" className="flex-1 flex justify-end">
+              <p 
+                className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
+                aria-label="Create auction"
+              > 
+                <span className="text-[#162218] font-medium">Create Auction</span>
+                <Image
+                  src="/images/Plus.svg"
+                  alt="Create Auction Icon"
+                  width={40}
+                  height={40}
+                  priority
+                />
+              </p>
+            </Link>
           </RoleGate>
       </div>
 
