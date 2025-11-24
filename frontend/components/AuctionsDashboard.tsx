@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import RoleGate from "./roleGate";
 
 type Auction = {
     id: string;
@@ -65,6 +66,7 @@ export default function AuctionsDashboard() {
             Auction Schedule
           </h1>
 
+          <RoleGate allow={["admin", "auctioneer"]}>
           <Link href="auctions/create" className="flex-1 flex justify-end">
             <p 
               className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
@@ -80,6 +82,7 @@ export default function AuctionsDashboard() {
               />
             </p>
           </Link>
+          </RoleGate>
       </div>
 
       {loading ? (
