@@ -53,12 +53,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-if (!isTesting)
-{
     builder.Services.AddDbContext<AppDbContext>(options =>
     {
-        var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-        options.UseSqlServer(connectionString);
+        if (!isTesting)
+        {
+            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+            options.UseSqlServer(connectionString);
+        }
     });
 
     builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
@@ -125,8 +126,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (!isTesting)
-{
     async Task SeedRolesAsync()
     {
         using var scope = app.Services.CreateScope();
@@ -144,7 +143,6 @@ if (!isTesting)
     }
 
     await SeedRolesAsync();
-}
 
 if (app.Environment.IsDevelopment())
 {
@@ -158,16 +156,12 @@ app.UseRouting();
 
 app.UseCors("AllowNextJs");
 
-if (!isTesting)
-{
-    app.UseAuthentication();
-}
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
-}
 
 // Allow tests to boot up API
 public partial class Program { }
