@@ -8,6 +8,7 @@ using backend.Db.Entities;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 namespace backend.Controllers;
 
@@ -62,7 +63,18 @@ public class AuthController : ControllerBase
         if (!result.Succeeded) {
             return Unauthorized("Invalid email or password.");
         }
-        return Ok(GenerateJwtToken(user.Id.ToString())); // Geef het token terug, alsof we superveilig zijn.
+        var token = GenerateJwtToken(user.Id.ToString());
+
+        Response.Cookies.Append("jwt", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(30),
+            Path = "/"
+        });
+
+        return Ok(new { message = "Login successful" });
     }
     [Authorize]
     [HttpGet("info")]

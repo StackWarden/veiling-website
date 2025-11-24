@@ -1,5 +1,4 @@
 "use client";
-
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
@@ -23,19 +22,15 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
-      const token = await res.text();
-
       if (!res.ok) {
-        throw new Error(token || "Login failed");
+        const message = await res.text();
+        throw new Error(message || "Login failed");
       }
 
-      if (!token || token.trim().length < 20) {
-        throw new Error("Invalid token received from server.");
-      }
-
-      localStorage.setItem("jwt", token);
+      setInfo("Login successful, redirecting...");
 
       window.location.href = "/";
     } catch (err) {
