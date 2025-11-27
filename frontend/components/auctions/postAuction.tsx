@@ -10,7 +10,7 @@ interface Auction {
 export default function PostAuction() {
   const [success, setSuccess] = useState(false);
   const { loading, error, execute } = usePost<Auction>({
-    route: "/auctions",
+    route: "/secure/auctions",
     onSuccess: () => {
       console.log("Auction created!");
       setSuccess(true);

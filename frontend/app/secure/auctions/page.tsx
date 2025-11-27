@@ -6,7 +6,7 @@ export default function AuctionsPage() {
   return (
     <>
       <Header />
-       <AuctionsDashboard />
+      <AuctionsDashboard />
     </>
            
   );
