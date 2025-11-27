@@ -95,7 +95,7 @@ export default function ProductList() {
           </div>
         </div>
 
-        {loading ? (
+        {loading || deleting ? (
           <p className="text-gray-500 text-center py-6">Loading products...</p>
         ) : products.length === 0 ? (
           <p className="text-gray-500 text-center py-6">No products available.</p>
