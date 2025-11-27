@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -18,6 +19,7 @@ public class AuctionItemController : Controller
 
     // GET: /AuctionItem
     [HttpGet]
+    [Authorize]
     public IActionResult GetAllAuctionItems()
     {
         var auctionItems = _db.AuctionItems.ToList();
@@ -26,6 +28,7 @@ public class AuctionItemController : Controller
 
     // GET: /AuctionItem/{id}
     [HttpGet("{id}")]
+    [Authorize]
     public IActionResult GetAuctionItemById(Guid id)
     {
         var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
@@ -37,7 +40,7 @@ public class AuctionItemController : Controller
 
     // POST: /AuctionItem
     [HttpPost]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuctionItem([FromBody] CreateAuctionItemDto dto)
     {
         var auctionItem = new AuctionItem();
@@ -70,7 +73,7 @@ public class AuctionItemController : Controller
 
     // PUT: /AuctionItem/{id}
     [HttpPut("{id}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult UpdateAuctionItem(Guid id, [FromBody] CreateAuctionItemDto dto)
     {
         var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
@@ -87,7 +90,7 @@ public class AuctionItemController : Controller
 
     // DELETE: /AuctionItem/{id}
     [HttpDelete("{id}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult DeleteAuctionItem(Guid id)
     {
         var auctionItem = _db.AuctionItems.Find(id);
@@ -105,6 +108,7 @@ public class AuctionItemController : Controller
         public Guid AuctionId { get; set; }
         public Guid ProductId { get; set; }
         public int LotNumber { get; set; }
+
         public string Status { get; set; } = "Pending";
     }
 }

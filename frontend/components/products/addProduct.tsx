@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePostData } from "./api/post";
+import { usePost } from "../api/post";
 
 enum ClockLocation {
   Aalsmeer = "Aalsmeer",
@@ -29,14 +29,26 @@ export default function AddProduct() {
   const [clockLocation, setClockLocation] = useState(ClockLocation.Aalsmeer);
   const [photo, setPhoto] = useState<File | null>(null);
 
-  const { error, success, postData } = usePostData<Product>("/products");
+  const [success, setSuccess] = useState(false);
+  const { error, execute: createProduct } = usePost<Product>({
+    route: "/products",
 
+    onSuccess: () => {
+      console.log("Product created!");
+      setSuccess(true);   // <-- your own success flag
+    },
+
+    onError: (err) => {
+      console.error("Error creating product:", err);
+      setSuccess(false);
+    }
+  });
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const potSize = `${potHeight}mm x ${potDiameter}mm`;
 
-    await postData({
+    await createProduct({
       species,
       potSize,
       stemLength: Number(stemLength),
@@ -46,7 +58,6 @@ export default function AddProduct() {
       photoUrl: photo ? photo.name : "",
     });
   };
-
   return (
     <div className="flex justify-center items-start px-6 pt-8">
       <form

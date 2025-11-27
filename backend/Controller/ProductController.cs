@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -20,6 +21,7 @@ public class ProductController : Controller
 
     // GET /products
     // Haalt alle producten op zonder tracking (lees: geen onnodige EF-overhead).
+    [Authorize(Roles = "admin,supplier,auctioneer")]
     [HttpGet("")]
     public async Task<IActionResult> Index()
     {
@@ -29,6 +31,7 @@ public class ProductController : Controller
     // GET /products/{id}
     // Haalt één product op op basis van het ID, of geeft 404 als het niet bestaat.
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "supplier,auctioneer,admin")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
@@ -43,7 +46,7 @@ public class ProductController : Controller
     // POST /products
     // Maakt een nieuw product aan, inclusief basisvalidatie van kloklocatie en veilingdatum.
     [HttpPost("")]
-    [IgnoreAntiforgeryToken] // weghalen zodra JWT klaar is
+    [Authorize(Roles = "supplier,admin")]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
         if (!Enum.TryParse<ClockLocation>(dto.ClockLocation, true, out var loc))
@@ -86,7 +89,7 @@ public class ProductController : Controller
     // PUT /products/{id}
     // Werkt bestaande producten bij, veld per veld, met lichte validatie.
     [HttpPut("{id:guid}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "supplier,admin")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
         var p = await _db.Products.FirstOrDefaultAsync(x => x.Id == id);
@@ -154,7 +157,7 @@ public class ProductController : Controller
     // DELETE /products/{id}
     // Verwijdert een product uit de database.
     [HttpDelete("{id:guid}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "supplier,admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var p = await _db.Products.FirstOrDefaultAsync(x => x.Id == id);

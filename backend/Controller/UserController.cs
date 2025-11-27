@@ -29,6 +29,7 @@ public class UserController : ControllerBase
     // Gebruikt dependency injection om de UserManager binnen te halen, 
     // ook al hebben we 'm eigenlijk al als class property (want waarom niet).
     [HttpGet("")]
+    [Authorize(Roles = "admin")]
     public IActionResult Index([FromServices] UserManager<User> userManager)
     {
         var users = userManager.Users.Select(u => new

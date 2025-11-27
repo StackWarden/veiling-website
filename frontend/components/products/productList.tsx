@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import useGet from "../api/get";
+import useDelete from "../api/delete";
+import { RoleGate } from "../RoleGate";
 
 type Product = {
   id: string;
@@ -30,37 +33,30 @@ const getClockLocationName = (value: string | number) => {
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { loading, execute } = useGet<Product>({
+    route: "/products",
+    autoFetch: false,
+    onSuccess: (data) => setProducts(data),
+  });
+  const { loading: deleting, execute: deleteAuction } = useDelete({
+    baseRoute: "/auctions",
+    onSuccess: (id) => {
+      setProducts(prev => prev.filter(a => a.id !== id));
+    }
+  });
 
   const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`);
-      const data = await res.json();
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    } finally {
-      setLoading(false);
-    }
+    await execute();
   };
 
   useEffect(() => {
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
-        method: "DELETE",
-      });
-
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      console.error("Failed to delete product:", err);
-    }
+    if (!confirm("Are you sure?")) return;
+    await deleteAuction(id);
   };
 
   return (
@@ -78,26 +74,28 @@ export default function ProductList() {
 
           {/* right aligned button */}
           <div className="flex-1 flex justify-end">
-            <Link href="/products/create">
-              <p
-                className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
-                aria-label="Create Product"
-              >
-                <span className="text-[#162218] font-medium">Create Product</span>
+            <RoleGate allow={["supplier"]} fallback={<div className="flex-1 flex justify-end" />}>
+              <Link href="/products/create">
+                <p
+                  className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
+                  aria-label="Create Product"
+                >
+                  <span className="text-[#162218] font-medium">Create Product</span>
 
-                <Image
-                  src="/images/Plus.svg"
-                  alt="Create Product Icon"
-                  width={40}
-                  height={40}
-                  priority
-                />
-              </p>
-            </Link>
+                  <Image
+                    src="/images/Plus.svg"
+                    alt="Create Product Icon"
+                    width={40}
+                    height={40}
+                    priority
+                  />
+                </p>
+              </Link>
+            </RoleGate>
           </div>
         </div>
 
-        {loading ? (
+        {loading || deleting ? (
           <p className="text-gray-500 text-center py-6">Loading products...</p>
         ) : products.length === 0 ? (
           <p className="text-gray-500 text-center py-6">No products available.</p>
@@ -112,7 +110,9 @@ export default function ProductList() {
                   <th className="p-3 text-center">Price (€)</th>
                   <th className="p-3 text-center">Location</th>
                   <th className="p-3 text-center">Auction Date</th>
-                  <th className="p-3 text-end">Actions</th>
+                  <RoleGate allow={["supplier"]}>
+                    <th className="p-3 text-end">Actions</th>
+                  </RoleGate>
                 </tr>
               </thead>
 
@@ -141,29 +141,30 @@ export default function ProductList() {
                     <td className="p-4 text-center">
                       {p.auctionDate ?? "-"}
                     </td>
+                    <RoleGate allow={["supplier"]}>
+                      <td className="p-4 text-end rounded-r-2xl">
+                        <div className="flex gap-6 justify-end">
+                          <Link
+                            href={`/products/edit/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline underline-offset-2"
+                          >
+                            Edit
+                          </Link>
 
-                    <td className="p-4 text-end rounded-r-2xl">
-                      <div className="flex gap-6 justify-end">
-                        <Link
-                          href={`/products/edit/${p.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:underline underline-offset-2"
-                        >
-                          Edit
-                        </Link>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(p.id);
-                          }}
-                          className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                          type="button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(p.id);
+                            }}
+                            className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </RoleGate>
                   </tr>
                 ))}
               </tbody>
