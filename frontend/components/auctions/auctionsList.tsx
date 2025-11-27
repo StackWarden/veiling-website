@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import useDelete from "../api/delete";
 import useGet from "../api/get";
+import { RoleGate } from "../RoleGate";
 
 type Auction = {
   id: string;
@@ -31,7 +32,7 @@ export default function AuctionsDashboard() {
   useEffect(() => {
     fetchAuctions();
   }, []);
-  
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
     await deleteAuction(id);
@@ -50,21 +51,23 @@ export default function AuctionsDashboard() {
             Auction Schedule
           </h1>
 
-          <Link href="auctions/create" className="flex-1 flex justify-end">
-            <p
-              className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
-              aria-label="Create auction"
-            >
-              <span className="text-[#162218] font-medium">Create Auction</span>
-              <Image
-                src="/images/Plus.svg"
-                alt="Create Auction Icon"
-                width={40}
-                height={40}
-                priority
-              />
-            </p>
-          </Link>
+          <RoleGate allow={["auctioneer"]} fallback={<div className="flex-1 flex justify-end" />}>
+            <Link href="auctions/create" className="flex-1 flex justify-end">
+              <p
+                className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
+                aria-label="Create auction"
+              >
+                <span className="text-[#162218] font-medium">Create Auction</span>
+                <Image
+                  src="/images/Plus.svg"
+                  alt="Create Auction Icon"
+                  width={40}
+                  height={40}
+                  priority
+                />
+              </p>
+            </Link>
+          </RoleGate>
         </div>
 
         {loading ? (
@@ -95,7 +98,7 @@ export default function AuctionsDashboard() {
                       <td className="p-4 text-right rounded-r-2xl">
                         <div className="flex gap-6 justify-end">
                           <Link
-                            href={`/auctions/info/${a.id}`}
+                            href={`/secure/auctions/info/${a.id}`}
                             className="hover:underline underline-offset-2"
                           >
                             Edit
