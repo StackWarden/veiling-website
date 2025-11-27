@@ -2,36 +2,69 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+/**
+ * Opties voor de useGet-hook.
+ */
 interface UseGetOptions<TData> {
+  /** De API-route, bv: "/products" */
   route: string;
+
+  /** Automatisch ophalen bij laden (default: true) */
   autoFetch?: boolean;
+
+  /** Queryparameters als key/value */
   params?: Record<string, string | number | boolean | null | undefined>;
+
+  /** Callback bij succesvol ophalen */
   onSuccess?: (data: TData[]) => void;
+
+  /** Callback bij fouten */
   onError?: (error: Error) => void;
+
+  /** Optionele transformatie van de response */
   transform?: (payload: unknown) => TData[];
 }
 
+/**
+ * Wat de useGet-hook teruggeeft.
+ */
 interface UseGetReturn<TData> {
   data: TData[];
   loading: boolean;
   error: string;
-  refetch: () => Promise<void>;
+
+  /** Handmatig opnieuw data ophalen */
+  execute: () => Promise<void>;
+
+  /** Direct data aanpassen in state */
   setData: React.Dispatch<React.SetStateAction<TData[]>>;
 }
 
-const buildUrl = (route: string, params?: UseGetOptions<unknown>["params"]) => {
+/**
+ * Bouwt een volledige URL inclusief queryparameters.
+ */
+const buildUrl = (
+  route: string,
+  params?: UseGetOptions<unknown>["params"]
+) => {
   const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}${route}`);
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-      url.searchParams.append(key, String(value));
+      if (value !== null && value !== undefined) {
+        url.searchParams.append(key, String(value));
+      }
     });
   }
 
   return url.toString();
 };
 
+/**
+ * useGet
+ * Herbruikbare hook voor het uitvoeren van geauthenticeerde GET-requests.
+ * Ondersteunt automatische laadtijd, queryparameters en transformaties.
+ */
 export default function useGet<TData = unknown>({
   route,
   autoFetch = true,
@@ -44,37 +77,45 @@ export default function useGet<TData = unknown>({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const refetch = useCallback(async () => {
+  /**
+   * Voert de GET-aanvraag uit.
+   */
+  const execute = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch(buildUrl(route, params));
+      const response = await fetch(buildUrl(route, params), {
+        method: "GET",
+        credentials: "include",
+      });
 
-      if (!response.ok) throw new Error(`Failed to fetch ${route}`);
+      if (!response.ok) {
+        throw new Error(`Fout bij ophalen: ${route}`);
+      }
 
       const payload = await response.json();
-      const parsedData = transform ? transform(payload) : (payload as TData[]);
+      const parsed = transform ? transform(payload) : (payload as TData[]);
 
-      setData(parsedData);
-      if (onSuccess) onSuccess(parsedData);
+      setData(parsed);
+
+      if (onSuccess) onSuccess(parsed);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-        if (onError) onError(err);
-      } else {
-        const unknownError = new Error("An unknown error occurred");
-        setError(unknownError.message);
-        if (onError) onError(unknownError);
-      }
+      const errorObj = err instanceof Error ? err : new Error("Onbekende fout");
+      setError(errorObj.message);
+
+      if (onError) onError(errorObj);
     } finally {
       setLoading(false);
     }
   }, [route, params, transform, onSuccess, onError]);
 
+  /**
+   * Automatisch uitvoeren bij mount of wanneer afhankelijkheden wijzigen.
+   */
   useEffect(() => {
-    if (autoFetch) void refetch();
-  }, [autoFetch, refetch]);
+    if (autoFetch) void execute();
+  }, [autoFetch, execute]);
 
-  return { data, loading, error, refetch, setData };
+  return { data, loading, error, execute, setData };
 }

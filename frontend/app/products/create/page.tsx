@@ -1,10 +1,10 @@
 import Header from "@/components/header"
-import PostAuction from "@/components/api/auctions/postAuction";
+import AddProduct from "@/components/products/addProduct";
 export default function Create() {
   return (
     <>
       <Header />
-      <PostAuction />
+      <AddProduct />
     </>
   );
 }

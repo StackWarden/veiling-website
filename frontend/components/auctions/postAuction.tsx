@@ -1,18 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { usePostData } from "../post";
+import { usePost } from "../api/post";
 interface Auction {
   startTime: string;
   endTime: string;
 }
 
 export default function PostAuction() {
-  const { loading, error, success, postData } = usePostData<Auction>("/secure/auctions");
+  const [success, setSuccess] = useState(false);
+  const { loading, error, execute } = usePost<Auction>({
+    route: "/auctions",
+    onSuccess: () => {
+      console.log("Auction created!");
+      setSuccess(true);
+    },
+    onError: (err) => {
+      console.error("Error creating auction:", err);
+      setSuccess(false);
+    }
+  });
 
   const [auction, setAuction] = useState<Auction>({
     startTime: new Date().toISOString(),
-    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 days
+    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 dagen
   });
 
   const handleChange = (key: keyof Auction, value: string) => {
@@ -21,7 +32,7 @@ export default function PostAuction() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await postData(auction);
+    await execute(auction); // <-- Belangrijk!
   };
 
   return (
