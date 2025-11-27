@@ -1,5 +1,5 @@
 import Header from "@/components/header";
-import ProductList from "@/components/productList";
+import ProductList from "@/components/products/productList";
 
 export default function ProductsPage() {
   return (

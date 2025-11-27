@@ -1,6 +1,6 @@
 "use client";
-
-import useGet from "../get";
+// Deprecated
+import useGet from "../api/get";
 
 interface Auction {
   id: string;
@@ -11,7 +11,7 @@ interface Auction {
 }
 
 export default function GetAuctions() {
-  const { data, loading, error, refetch } = useGet<Auction>({ route: "/auctions" });
+  const { data, loading, error, execute } = useGet<Auction>({ route: "/auctions" });
 
   return (
     <div className="space-y-4">
@@ -21,7 +21,7 @@ export default function GetAuctions() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Auctions</h2>
         <button
-          onClick={() => void refetch()}
+          onClick={() => void execute()}
           disabled={loading}
           className="rounded border border-gray-300 bg-white px-3 py-1 text-sm font-medium transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
         >

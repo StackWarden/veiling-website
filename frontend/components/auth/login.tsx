@@ -2,6 +2,7 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import { usePost } from "../api/post";
 
 export default function Login() {
   const searchParams = useSearchParams();
@@ -12,30 +13,28 @@ export default function Login() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState(initialMessage);
 
+  // Gebruik de usePost hook
+  const {
+    loading,
+    error: postError,
+    execute: login,
+  } = usePost<{ email: string; password: string }>({
+    route: "/auth/jwt",
+    onSuccess: () => {
+      setInfo("Login successful, redirecting...");
+      window.location.href = "/";
+    },
+    onError: (err) => {
+      setError(err.message);
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setInfo("");
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/jwt`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || "Login failed");
-      }
-
-      setInfo("Login successful, redirecting...");
-
-      window.location.href = "/";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
-    }
+    await login({ email, password });
   };
 
 return (

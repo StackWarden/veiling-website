@@ -133,7 +133,7 @@ public class AuthController : ControllerBase
         // Default rol meegeven, omdat iedereen ergens moet beginnen.
         await _userManager.AddToRoleAsync(user, "buyer"); // Of "supplier" / "auctioneer" als je zin hebt.
 
-        return Ok($"User {user.Name} registered successfully.");
+        return Ok(new { message = $"User {user.Name} registered successfully." });
     }
 
     // Genereert een JWT-token met de user-ID als subject.

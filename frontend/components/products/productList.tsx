@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import useGet from "../api/get";
 
 type Product = {
   id: string;
@@ -29,22 +30,13 @@ const getClockLocationName = (value: string | number) => {
 };
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: products, loading, error, execute, setData: setProducts } = useGet<Product>({
+    route: "/products",
+    autoFetch: false,
+  });
 
   const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
-          credentials: "include",
-      });
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    } finally {
-      setLoading(false);
-    }
+    await execute();
   };
 
   useEffect(() => {
