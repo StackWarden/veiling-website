@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import LogoutButton from "./logoutButton";
 
 export default function Header() {
     const pathname = usePathname();
@@ -64,6 +65,8 @@ export default function Header() {
 
                 {/* Navigation */}
                 <nav className="flex items-center gap-8 text-base font-semibold">
+
+                    <LogoutButton />
 
                     <a
                         href="/products"
