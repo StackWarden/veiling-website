@@ -12,5 +12,10 @@ export function middleware(req: NextRequest) {
   if (!token && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
+
+  if (token && isPublic) {
+    return NextResponse.redirect(new URL("/auctions", req.url))
+  }
+  
   return NextResponse.next();
 }
