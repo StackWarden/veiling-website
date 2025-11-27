@@ -12,11 +12,9 @@ export default function LogoutButton({
   redirectTo = "/login?message=Logged%20out",
 }: LogoutButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleLogout = async () => {
     setLoading(true);
-    setError("");
 
     try {
       const res = await fetch(
@@ -34,9 +32,7 @@ export default function LogoutButton({
       // Force refresh to clear any client state
       window.location.href = redirectTo;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unexpected logout error";
-      setError(message);
+      console.log(err instanceof Error ? err.message : "Unexpected logout error");
     } finally {
       setLoading(false);
     }

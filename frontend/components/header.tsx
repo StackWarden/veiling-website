@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import LogoutButton from "./logoutButton";
+import LogoutButton from "./buttons/logoutButton";
 
 export default function Header() {
     const pathname = usePathname();
