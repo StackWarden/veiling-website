@@ -31,7 +31,7 @@ export default function AddProduct() {
 
   const [success, setSuccess] = useState(false);
   const { loading, error, execute: createProduct } = usePost<Product>({
-    route: "/secure/products",
+    route: "/products",
 
     onSuccess: () => {
       console.log("Product created!");

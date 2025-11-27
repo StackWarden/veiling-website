@@ -11,7 +11,7 @@ interface Auction {
 }
 
 export default function GetAuctions() {
-  const { data, loading, error, execute } = useGet<Auction>({ route: "/secure/auctions" });
+  const { data, loading, error, execute } = useGet<Auction>({ route: "/auctions" });
 
   return (
     <div className="space-y-4">
