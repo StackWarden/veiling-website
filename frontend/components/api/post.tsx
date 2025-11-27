@@ -1,47 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
-interface PostDataResult<T> {
-  loading: boolean;
-  error: string;
-  success: boolean;
-  postData: (data: T) => Promise<void>;
+/**
+ * Opties voor de usePost-hook.
+ */
+interface UsePostOptions<TBody, TResult> {
+  /** De API-route waarheen gepost moet worden (zonder ID) */
+  route: string;
+
+  /** Callback bij succes met teruggegeven data */
+  onSuccess?: (data: TResult, body: TBody) => void;
+
+  /** Callback bij fouten */
+  onError?: (error: Error) => void;
 }
 
-export function usePostData<T extends object>(
-  route: string
-): PostDataResult<T> {
+/**
+ * Returnwaarden van de usePost-hook.
+ */
+interface UsePostReturn<TBody, TResult> {
+  loading: boolean;
+  error: string;
+
+  /** Voert POST uit met body */
+  execute: (body: TBody) => Promise<TResult | null>;
+}
+
+/**
+ * usePost
+ * Herbruikbare hook voor geauthenticeerde POST-requests met JSON-body.
+ */
+export function usePost<TBody extends object, TResult = unknown>({
+  route,
+  onSuccess,
+  onError,
+}: UsePostOptions<TBody, TResult>): UsePostReturn<TBody, TResult> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
-  const postData = async (data: T) => {
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+  /**
+   * Voert de POST-aanvraag uit met JSON-body.
+   */
+  const execute = useCallback(
+    async (body: TBody): Promise<TResult | null> => {
+      setLoading(true);
+      setError("");
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${route}`, {
-        credentials: "include",
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}${route}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        );
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Failed to POST to ${route}`);
+        if (!response.ok) {
+          throw new Error(`POST mislukt: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as TResult;
+
+        if (onSuccess) onSuccess(data, body);
+
+        return data;
+      } catch (err) {
+        const errorObj = err instanceof Error ? err : new Error("Onbekende fout");
+        setError(errorObj.message);
+        if (onError) onError(errorObj);
+        return null;
+      } finally {
+        setLoading(false);
       }
+    },
+    [route, onSuccess, onError]
+  );
 
-      setSuccess(true);
-    } catch (err) {
-      if (err instanceof Error) setError(err.message);
-      else setError("Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { loading, error, success, postData };
+  return { loading, error, execute };
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import useGet from "../api/get";
 
 type Product = {
   id: string;
@@ -29,26 +30,18 @@ const getClockLocationName = (value: string | number) => {
 };
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: products, loading, execute } = useGet<Product>({
+    route: "/products",
+    autoFetch: false,
+  });
 
   const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
-          credentials: "include",
-      });
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    } finally {
-      setLoading(false);
-    }
+    await execute();
   };
 
   useEffect(() => {
     fetchProducts();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -56,7 +49,7 @@ export default function ProductList() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Available Products</h2>
 
-        <Link href="/secure/products/create">
+        <Link href="/products/create">
           <button
             className="p-2 rounded-full hover:bg-gray-100 transition flex items-center justify-center border border-gray-300"
             aria-label="Add product"
