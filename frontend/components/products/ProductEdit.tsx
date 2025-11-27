@@ -40,7 +40,9 @@ export default function ProductInfo() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
+        credentials: 'include',
+      });
       const data = await res.json();
 
       setProduct(data);
@@ -62,16 +64,17 @@ export default function ProductInfo() {
   const saveChanges = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
       method: "PUT",
+      credentials: 'include',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-      species: form.species,
-      potSize: form.potSize,
-      stemLength: Number(form.stemLength),
-      quantity: Number(form.quantity),
-      minPrice: Number(form.minPrice),
-      clockLocation: form.clockLocation,      
-      auctionDate: form.auctionDate || "",   
-      photoUrl: product?.photoUrl ?? ""
+        species: form.species,
+        potSize: form.potSize,
+        stemLength: Number(form.stemLength),
+        quantity: Number(form.quantity),
+        minPrice: Number(form.minPrice),
+        clockLocation: form.clockLocation,
+        auctionDate: form.auctionDate || "",
+        photoUrl: product?.photoUrl ?? ""
       }),
     });
 
@@ -113,19 +116,19 @@ export default function ProductInfo() {
             { label: "Species", key: "species" as FormKey },
             { label: "Pot Size", key: "potSize" as FormKey },
             { label: "Stem Length (cm)", key: "stemLength" as FormKey },
-            { label: "Quantity", key: "quantity" as FormKey},
+            { label: "Quantity", key: "quantity" as FormKey },
             { label: "Price (€)", key: "minPrice" as FormKey },
             { label: "Clock location", key: "clockLocation" as FormKey },
-            { label: "Auction date", key: "auctionDate" as FormKey},
+            { label: "Auction date", key: "auctionDate" as FormKey },
           ].map(({ label, key }) => (
             <div key={key} className="flex justify-between items-center mb-4">
               <span className="font-medium text-black">{label}</span>
 
               {editField === key ? (
                 key === "clockLocation" ? (
-                    <select
-                        value={form.clockLocation}
-                        onChange={(e) =>
+                  <select
+                    value={form.clockLocation}
+                    onChange={(e) =>
                       setForm((f) => ({ ...f, clockLocation: e.target.value }))
                     }
                     className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
@@ -135,17 +138,17 @@ export default function ProductInfo() {
                         {loc}
                       </option>
                     ))}
-                    </select>
+                  </select>
                 ) : (
-                
-                <input
-                  type="text"
-                  value={form[key]}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, [key]: e.target.value }))
-                  }
-                  className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
-                />
+
+                  <input
+                    type="text"
+                    value={form[key]}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, [key]: e.target.value }))
+                    }
+                    className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
+                  />
                 )
               ) : (
                 <span className="text-gray-700">

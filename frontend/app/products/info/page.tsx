@@ -1,5 +1,5 @@
 import Header from "@/components/header";
-import Productinfo from "@/components/Productinfo"
+import Productinfo from "@/components/products/Productinfo"
 
 export default function Live() {
   return (
