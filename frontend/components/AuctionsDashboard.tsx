@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { RoleGate } from "./roleGate";
+import { RoleGate } from "./RoleGate";
 
-type Auction = {
+export interface Auction {
     id: string;
-    description?: string;
-    startTime?: string;
-    endTime?: string;
-    status?: string;
+    description: string;
+    startTime: string;
+    endTime: string;
+    status: string;
 };
 
 export default function AuctionsDashboard() {
@@ -24,7 +24,15 @@ export default function AuctionsDashboard() {
           credentials: "include",
       });
       const data = await res.json();
-      setAuctions(Array.isArray(data) ? data : []);
+      const formatted = (Array.isArray(data) ? data : []).map(a => ({
+      ...a,
+      description: a.description || "-",
+      startTime: new Date(a.startTime).toLocaleString() || "-",
+      endTime: new Date(a.endTime).toLocaleString() || "-",
+      status: a.status || "-",
+    }));
+
+    setAuctions(formatted);
     } catch (err) {
       console.error("Error fetching auctions:", err);
     } finally {
@@ -106,14 +114,14 @@ export default function AuctionsDashboard() {
               {auctions.map((a) => {
                 return (
                   <tr key={a.id} className="hover:bg-[#162218] hover:text-white transition cursor-pointer">
-                    <td className="p-4 text-start rounded-l-2xl">{a.description ?? "-"}</td>
-                    <td className="p-4 text-center">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td> 
-                    <td className="p-4 text-center">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td> 
-                    <td className="p-4 text-end">{a.status ?? "-"}</td>
+                    <td className="p-4 text-start rounded-l-2xl">{a.description}</td>
+                    <td className="p-4 text-center">{a.startTime}</td> 
+                    <td className="p-4 text-center">{a.endTime}</td> 
+                    <td className="p-4 text-end">{a.status}</td>
                     <td className="p-4 text-right rounded-r-2xl">
                         <div className="flex gap-6 justify-end">
                           <Link
-                            href={`/secure/auctions/info/${a.id}`}
+                            href={`/auctions/info/${a.id}`}
                             className="hover:underline underline-offset-2"
                           >
                             Edit 
