@@ -20,7 +20,7 @@ export default function Login() {
     route: "/auth/jwt",
     onSuccess: () => {
       setInfo("Login successful, redirecting...");
-      window.location.href = "/";
+      window.location.href = "/auctions";
     },
     onError: (err) => {
       setError(err.message);
