@@ -15,8 +15,6 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const {
-    loading,
-    error: postError,
     execute: register,
   } = usePost<{
     name: string;

@@ -10,7 +10,7 @@ interface UsePostOptions<TBody, TResult> {
   route: string;
 
   /** Callback bij succes met teruggegeven data */
-  onSuccess?: (data: TResult) => void;
+  onSuccess?: (data: TResult, body: TBody) => void;
 
   /** Callback bij fouten */
   onError?: (error: Error) => void;
@@ -64,7 +64,7 @@ export function usePost<TBody extends object, TResult = unknown>({
 
         const data = (await response.json()) as TResult;
 
-        if (onSuccess) onSuccess(data);
+        if (onSuccess) onSuccess(data, body);
 
         return data;
       } catch (err) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useGet from "../api/get";
@@ -30,7 +30,7 @@ const getClockLocationName = (value: string | number) => {
 };
 
 export default function ProductList() {
-  const { data: products, loading, error, execute, setData: setProducts } = useGet<Product>({
+  const { data: products, loading, execute } = useGet<Product>({
     route: "/products",
     autoFetch: false,
   });
@@ -41,6 +41,7 @@ export default function ProductList() {
 
   useEffect(() => {
     fetchProducts();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

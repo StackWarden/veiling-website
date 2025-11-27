@@ -30,7 +30,8 @@ export default function AuctionsDashboard() {
   });
 
   useEffect(() => {
-    fetchAuctions();
+  fetchAuctions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -70,7 +71,7 @@ export default function AuctionsDashboard() {
           </RoleGate>
         </div>
 
-        {loading ? (
+        {loading || deleting ? (
           <p className="text-gray-500 text-center py-6">Loading auctions...</p>
         ) : auctions.length === 0 ? (
           <p className="text-gray-500 text-center py-6">No auctions available.</p>

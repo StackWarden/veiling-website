@@ -15,8 +15,6 @@ export default function Login() {
 
   // Gebruik de usePost hook
   const {
-    loading,
-    error: postError,
     execute: login,
   } = usePost<{ email: string; password: string }>({
     route: "/auth/jwt",

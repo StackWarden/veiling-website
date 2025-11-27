@@ -30,7 +30,7 @@ export default function AddProduct() {
   const [photo, setPhoto] = useState<File | null>(null);
 
   const [success, setSuccess] = useState(false);
-  const { loading, error, execute: createProduct } = usePost<Product>({
+  const { error, execute: createProduct } = usePost<Product>({
     route: "/products",
 
     onSuccess: () => {

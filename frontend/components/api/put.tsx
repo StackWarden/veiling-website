@@ -10,7 +10,7 @@ interface UsePutOptions<TBody, TResult> {
   baseRoute: string;
 
   /** Callback bij succes */
-  onSuccess?: (data: TResult, id: string) => void;
+  onSuccess?: (data: TResult, id: string, body: TBody) => void;
 
   /** Callback bij fout */
   onError?: (error: Error) => void;
@@ -59,7 +59,7 @@ export function usePut<TBody extends object, TResult = unknown>({
 
         const data = (await response.json()) as TResult;
 
-        if (onSuccess) onSuccess(data, id);
+        if (onSuccess) onSuccess(data, id, body);
 
         return data;
       } catch (err) {
