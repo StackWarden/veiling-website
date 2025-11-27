@@ -26,7 +26,7 @@ export default function AuctionsDashboard() {
   const { loading, execute: fetchAuctions } = useGet<Auction>({
     route: "/auctions",
     autoFetch: false,
-        onSuccess: (data) => {
+    onSuccess: (data) => {
       const formatted = (Array.isArray(data) ? data : []).map(a => ({
         ...a,
         description: a.description || "-",
