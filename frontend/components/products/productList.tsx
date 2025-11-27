@@ -110,7 +110,9 @@ export default function ProductList() {
                   <th className="p-3 text-center">Price (€)</th>
                   <th className="p-3 text-center">Location</th>
                   <th className="p-3 text-center">Auction Date</th>
-                  <th className="p-3 text-end">Actions</th>
+                  <RoleGate allow={["supplier"]}>
+                    <th className="p-3 text-end">Actions</th>
+                  </RoleGate>
                 </tr>
               </thead>
 
@@ -139,29 +141,30 @@ export default function ProductList() {
                     <td className="p-4 text-center">
                       {p.auctionDate ?? "-"}
                     </td>
+                    <RoleGate allow={["supplier"]}>
+                      <td className="p-4 text-end rounded-r-2xl">
+                        <div className="flex gap-6 justify-end">
+                          <Link
+                            href={`/products/edit/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline underline-offset-2"
+                          >
+                            Edit
+                          </Link>
 
-                    <td className="p-4 text-end rounded-r-2xl">
-                      <div className="flex gap-6 justify-end">
-                        <Link
-                          href={`/products/edit/${p.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:underline underline-offset-2"
-                        >
-                          Edit
-                        </Link>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(p.id);
-                          }}
-                          className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                          type="button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(p.id);
+                            }}
+                            className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </RoleGate>
                   </tr>
                 ))}
               </tbody>
