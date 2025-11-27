@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import MessageBanner from "@/components/messageBanner";
 import { RoleGate } from "./RoleGate";
+import LogoutButton from "./buttons/logoutButton";
 
 export default function Header() {
     const pathname = usePathname();
@@ -67,6 +68,7 @@ export default function Header() {
 
                     {/* Navigation */}
                     <nav className="flex items-center gap-8 text-base font-semibold">
+                        <LogoutButton />
                         <RoleGate allow={["supplier"]}>
                             <a
                                 href="/products"
@@ -91,16 +93,16 @@ export default function Header() {
                             Auctions
                         </a>
                         <RoleGate allow={["admin"]}>
-                        <a
-                            href="/notifications"
-                            className={
-                                isActive("/notifications")
-                                    ? "underline underline-offset-4"
-                                    : "hover:text-gray-600 transition"
-                            }
-                        >
-                            Messages
-                        </a>
+                            <a
+                                href="/notifications"
+                                className={
+                                    isActive("/notifications")
+                                        ? "underline underline-offset-4"
+                                        : "hover:text-gray-600 transition"
+                                }
+                            >
+                                Messages
+                            </a>
                         </RoleGate>
 
                         {/* User info */}

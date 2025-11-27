@@ -76,6 +76,27 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Login successful" });
     }
+
+    // POST: /auth/logout
+    // Verwijdert de JWT-cookie door een lege, verlopen cookie te plaatsen.
+    // Hierdoor wordt de user direct uitgelogd aan de clientkant.
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await _signInManager.SignOutAsync();
+
+        Response.Cookies.Append("jwt", string.Empty, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTimeOffset.UtcNow.AddDays(-1),
+            Path = "/"
+        });
+
+        return Ok(new { message = "Logout successful" });
+    }
     [Authorize]
     [HttpGet("info")]
     public async Task<IActionResult> UserInfo()

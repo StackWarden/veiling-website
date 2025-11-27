@@ -9,10 +9,10 @@ import { RoleGate } from "../RoleGate";
 
 type Auction = {
   id: string;
-  description?: string;
-  startTime?: string;
-  endTime?: string;
-  status?: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  status: string;
 };
 
 export default function AuctionsDashboard() {
@@ -26,7 +26,16 @@ export default function AuctionsDashboard() {
   const { loading, execute: fetchAuctions } = useGet<Auction>({
     route: "/auctions",
     autoFetch: false,
-    onSuccess: (data) => setAuctions(data),
+    onSuccess: (data) => {
+      const formatted = (Array.isArray(data) ? data : []).map(a => ({
+        ...a,
+        description: a.description || "-",
+        startTime: a.startTime ? new Date(a.startTime).toLocaleString() : "-",
+        endTime: a.endTime ? new Date(a.endTime).toLocaleString() : "-",
+        status: a.status || "-",
+      }));
+      setAuctions(formatted);
+    }
   });
 
   useEffect(() => {
@@ -92,18 +101,19 @@ export default function AuctionsDashboard() {
                 {auctions.map((a) => {
                   return (
                     <tr key={a.id} className="hover:bg-[#162218] hover:text-white transition cursor-pointer">
-                      <td className="p-4 text-start rounded-l-2xl">{a.description ?? "-"}</td>
-                      <td className="p-4 text-center">{a.startTime ? new Date(a.startTime).toLocaleString() : "-"}</td>
-                      <td className="p-4 text-center">{a.endTime ? new Date(a.endTime).toLocaleString() : "-"}</td>
-                      <td className="p-4 text-end">{a.status ?? "-"}</td>
+                      <td className="p-4 text-start rounded-l-2xl">{a.description}</td>
+                      <td className="p-4 text-center">{a.startTime}</td>
+                      <td className="p-4 text-center">{a.endTime}</td>
+                      <td className="p-4 text-end">{a.status}</td>
+                      <RoleGate allow={["auctioneer"]}>
                       <td className="p-4 text-right rounded-r-2xl">
                         <div className="flex gap-6 justify-end">
-                          <Link
+                          {/* <Link
                             href={`/auctions/info/${a.id}`}
                             className="hover:underline underline-offset-2"
                           >
                             Edit
-                          </Link>
+                          </Link> */}
                           <p
                             onClick={() => handleDelete(a.id)}
                             className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
@@ -112,6 +122,7 @@ export default function AuctionsDashboard() {
                           </p>
                         </div>
                       </td>
+                      </RoleGate>
                     </tr>
                   )
                 })}
