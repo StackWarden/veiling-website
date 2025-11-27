@@ -1,18 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { usePostData } from "../post";
+import { usePost } from "../api/post";
 interface Auction {
   startTime: string;
   endTime: string;
 }
 
 export default function PostAuction() {
-  const { loading, error, success, postData } = usePostData<Auction>("/auctions");
+  const [success, setSuccess] = useState(false);
+  const { loading, error, execute } = usePost<Auction>({
+    route: "/auctions",
+    onSuccess: () => {
+      console.log("Auction created!");
+      setSuccess(true);
+    },
+    onError: (err) => {
+      console.error("Error creating auction:", err);
+      setSuccess(false);
+    }
+  });
 
   const [auction, setAuction] = useState<Auction>({
     startTime: new Date().toISOString(),
-    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 days
+    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 dagen
   });
 
   const handleChange = (key: keyof Auction, value: string) => {
@@ -21,7 +32,7 @@ export default function PostAuction() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await postData(auction);
+    await execute(auction); // <-- Belangrijk!
   };
 
   return (
@@ -32,7 +43,7 @@ export default function PostAuction() {
           className="w-full max-w-3xl space-y-8"
         >
           <h1 className="text-3xl font-bold text-center">Create Auction</h1>
-
+          
           {/* Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 

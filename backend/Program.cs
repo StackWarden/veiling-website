@@ -7,10 +7,15 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load();
+var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+
+Env.Load(envFilePath);
+
+var isTesting = builder.Environment.IsEnvironment("Testing");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -49,22 +54,25 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-    options.UseSqlServer(connectionString);
-});
+    builder.Services.AddDbContext<AppDbContext>(options =>
+    {
+        if (!isTesting)
+        {
+            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+            options.UseSqlServer(connectionString);
+        }
+    });
 
-builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
-{
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+    builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -82,7 +90,22 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = Environment.GetEnvironmentVariable("DOMAIN"),
         ValidAudience = Environment.GetEnvironmentVariable("DOMAIN"),
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET") ?? string.Empty))
+            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET") ?? string.Empty)),
+
+        RoleClaimType = ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.TryGetValue("jwt", out var token))
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -106,27 +129,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-async Task SeedRolesAsync()
-{
-    using var scope = app.Services.CreateScope();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-
-    string[] roles = { "buyer", "supplier", "auctioneer" };
-
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole<Guid>(role));
-        }
-    }
-}
-await SeedRolesAsync();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    await DatabaseSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();
@@ -141,3 +148,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Allow tests to boot up API
+public partial class Program { }

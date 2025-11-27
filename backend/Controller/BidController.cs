@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -21,9 +22,8 @@ public class BidController : Controller
     // POST: /bids/place
     // Plaatst een nieuw bod op een veiling.
     // Valideert de input heel minimaal, want blijkbaar vertrouwen we gebruikers nog steeds.
-    // Zodra JWT is geïmplementeerd, kan de IgnoreAntiforgeryToken er eindelijk uit.
     [HttpPost("place")]
-    [IgnoreAntiforgeryToken] // Dit moet weg zodra JWT is geimplementeerd
+    [Authorize(Roles = "buyer,supplier,admin")]
     public IActionResult PlaceBid([FromForm] PlaceBidDto dto)
     {
         // Validatie: we checken of alle verplichte velden zijn ingevuld.

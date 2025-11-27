@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -33,6 +34,7 @@ public class AuctionController : Controller
     // In theorie zou je hier nog pagination, filtering of caching kunnen toevoegen,
     // maar hé, laten we niet te ambitieus doen voor een simpele GET-endpoint.
     [HttpGet]
+    [Authorize]
     public IActionResult GetAllAuctions()
     {
         var auctions = _db.Auctions.ToList();
@@ -45,6 +47,7 @@ public class AuctionController : Controller
     // want blijkbaar kan je niet iets ophalen wat niet bestaat (wie had dat gedacht).
     // Anders gooien we het gewoon terug met een Ok(), helemaal volgens het boekje.
     [HttpGet("{id}")]
+    [Authorize]
     public IActionResult GetAuctionById(Guid id)
     {
         var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);
@@ -62,9 +65,12 @@ public class AuctionController : Controller
     // en natuurlijk direct opgeslagen zonder ingewikkelde repositories of fancy patterns.
     // Uiteindelijk gooien we een Ok() terug met het ID, zodat iedereen blij is.
     [HttpPost]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
     {
+        if (dto == null) {
+            return BadRequest("Request body is required.");
+        }
         if (dto.EndTime <= dto.StartTime) {
             return BadRequest("End time must be after start time.");
         }
@@ -80,7 +86,7 @@ public class AuctionController : Controller
         _db.Auctions.Add(auction);
         _db.SaveChanges();
 
-        return Ok($"Auction {auction.Id} created successfully.");
+        return CreatedAtAction(nameof(GetAuctionById), new { id = auction.Id }, auction);
     }
 
     // PUT: /auctions/{id}
@@ -91,7 +97,7 @@ public class AuctionController : Controller
     // Vervolgens worden de velden netjes overschreven en alles opgeslagen met SaveChanges(),
     // oftewel: de standaard “ja dit hoort eigenlijk in een service-laag” aanpak.
     [HttpPut("{id}")]
-    [IgnoreAntiforgeryToken]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionDto dto)
     {
         var auction = _db.Auctions.Find(id);
@@ -117,6 +123,7 @@ public class AuctionController : Controller
     // Bestaat hij wel, dan gooien we ‘m uit de database en slaan dat op alsof er nooit iets gebeurd is.
     // Kortom: de digitale equivalent van “weg is weg”.
     [HttpDelete("{id}")]
+    [Authorize(Roles = "auctioneer,admin")]
     public IActionResult DeleteAuction(Guid id)
     {
         var auction = _db.Auctions.Find(id); // Dit zoekt en geeft terug wat ie vind, als dat niks is geeft het dus ook null terug

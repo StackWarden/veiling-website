@@ -18,24 +18,18 @@ export default function Header() {
     const isActive = (path: string) => pathname.startsWith(path);
 
     useEffect(() => {
-        /*
-            Probeert de token uit de local storage te halen
-            
-            Bij geen token return de functie en dan blijft de Role/Name leeg (Uiteraard later wordt je doorverwezen naar de login scherm)
-        */
-        const token = localStorage.getItem("jwt");
-        if (!token) return;
-
         const fetchUser = async () => {
             try {
                 const res = await fetch(
                     `${process.env.NEXT_PUBLIC_API_URL}/auth/info`,
                     {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
+                        credentials: "include",
                     }
                 );
+
+                if (!res.ok) {
+                    return;
+                }
 
                 const data = await res.json();
 
