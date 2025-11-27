@@ -24,9 +24,9 @@ export function middleware(req: NextRequest) {
   }
 
   if (token && isPublic) {
-    return NextResponse.redirect(new URL("/auctions", req.url))
+    return NextResponse.redirect(new URL("/auctions", req.url));
   }
-  
+
   // If public, skip role checks
   if (isPublic) {
     return NextResponse.next();
