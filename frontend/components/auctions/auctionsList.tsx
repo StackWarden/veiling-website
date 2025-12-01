@@ -105,14 +105,15 @@ export default function AuctionsDashboard() {
                       <td className="p-4 text-center">{a.startTime}</td>
                       <td className="p-4 text-center">{a.endTime}</td>
                       <td className="p-4 text-end">{a.status}</td>
+                      <RoleGate allow={["auctioneer"]}>
                       <td className="p-4 text-right rounded-r-2xl">
                         <div className="flex gap-6 justify-end">
-                          <Link
+                          {/* <Link
                             href={`/auctions/info/${a.id}`}
                             className="hover:underline underline-offset-2"
                           >
                             Edit
-                          </Link>
+                          </Link> */}
                           <p
                             onClick={() => handleDelete(a.id)}
                             className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
@@ -121,6 +122,7 @@ export default function AuctionsDashboard() {
                           </p>
                         </div>
                       </td>
+                      </RoleGate>
                     </tr>
                   )
                 })}

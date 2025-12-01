@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import MessageBanner from "@/components/messageBanner";
+import { RoleGate } from "./RoleGate";
 import LogoutButton from "./buttons/logoutButton";
 
 export default function Header() {
@@ -47,73 +49,76 @@ export default function Header() {
     }, []);
 
     return (
-        <header className="w-full">
-            <div className="w-full px-[5em] py-4 flex items-center justify-between">
+        <>
+            <header className="w-full">
+                <div className="w-full px-[5em] py-4 flex items-center justify-between">
 
-                {/* Logo */}
-                <div className="flex items-center">
-                    <div className="bg-[#0f1c14] rounded-full p-1 flex items-center">
-                        <Image
-                            src="/logo.png"
-                            alt="logo"
-                            width={48}
-                            height={48}
-                            className="w-12 h-12"
-                        />
+                    {/* Logo */}
+                    <div className="flex items-center">
+                        <div className="bg-[#0f1c14] rounded-full p-1 flex items-center">
+                            <Image
+                                src="/logo.png"
+                                alt="logo"
+                                width={48}
+                                height={48}
+                                className="w-12 h-12"
+                            />
+                        </div>
                     </div>
+
+                    {/* Navigation */}
+                    <nav className="flex items-center gap-8 text-base font-semibold">
+                        <LogoutButton />
+                        <RoleGate allow={["supplier"]}>
+                            <a
+                                href="/products"
+                                className={
+                                    // Als de current path overeenkomt wordt deze underlined
+                                    isActive("/products")
+                                        ? "underline underline-offset-4"
+                                        : "hover:text-gray-600 transition"
+                                }
+                            >
+                                Products
+                            </a>
+                        </RoleGate>
+                        <a
+                            href="/auctions"
+                            className={
+                                isActive("/auctions")
+                                    ? "underline underline-offset-4"
+                                    : "hover:text-gray-600 transition"
+                            }
+                        >
+                            Auctions
+                        </a>
+                        <RoleGate allow={["admin"]}>
+                            <a
+                                href="/notifications"
+                                className={
+                                    isActive("/notifications")
+                                        ? "underline underline-offset-4"
+                                        : "hover:text-gray-600 transition"
+                                }
+                            >
+                                Messages
+                            </a>
+                        </RoleGate>
+
+                        {/* User info */}
+                        <div className="flex p-2.5 justify-center items-center gap-2.5 rounded-lg bg-[#162218] text-white">
+                            <span className="font-semibold">
+                                {user?.role ?? "Loading"}:
+                            </span>
+                            <span className="font-semibold">
+                                {user?.name ?? "..."}
+                            </span>
+                        </div>
+                    </nav>
+
                 </div>
-
-                {/* Navigation */}
-                <nav className="flex items-center gap-8 text-base font-semibold">
-
-                    <LogoutButton />
-
-                    <a
-                        href="/products"
-                        className={
-                            // Als de current path overeenkomt wordt deze underlined
-                            isActive("/products")
-                                ? "underline underline-offset-4"
-                                : "hover:text-gray-600 transition"
-                        }
-                    >
-                        Products
-                    </a>
-
-                    <a
-                        href="/auctions"
-                        className={
-                            isActive("/auctions")
-                                ? "underline underline-offset-4"
-                                : "hover:text-gray-600 transition"
-                        }
-                    >
-                        Auctions
-                    </a>
-
-                    <a
-                        href="/notifications"
-                        className={
-                            isActive("/notifications")
-                                ? "underline underline-offset-4"
-                                : "hover:text-gray-600 transition"
-                        }
-                    >
-                        Messages
-                    </a>
-
-                    {/* User info */}
-                    <div className="flex p-2.5 justify-center items-center gap-2.5 rounded-lg bg-[#162218] text-white">
-                        <span className="font-semibold">
-                            {user?.role ?? "Loading"}:
-                        </span>
-                        <span className="font-semibold">
-                            {user?.name ?? "..."}
-                        </span>
-                    </div>
-                </nav>
-
-            </div>
-        </header>
+            </header>
+            <MessageBanner />
+        </>
     );
 }

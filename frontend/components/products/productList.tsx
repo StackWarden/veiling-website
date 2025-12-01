@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useGet from "../api/get";
+import useDelete from "../api/delete";
+import { RoleGate } from "../RoleGate";
 
 type Product = {
   id: string;
@@ -30,9 +32,17 @@ const getClockLocationName = (value: string | number) => {
 };
 
 export default function ProductList() {
-  const { data: products, loading, execute } = useGet<Product>({
+  const [products, setProducts] = useState<Product[]>([]);
+  const { loading, execute } = useGet<Product>({
     route: "/products",
     autoFetch: false,
+    onSuccess: (data) => setProducts(data),
+  });
+  const { loading: deleting, execute: deleteAuction } = useDelete({
+    baseRoute: "/auctions",
+    onSuccess: (id) => {
+      setProducts(prev => prev.filter(a => a.id !== id));
+    }
   });
 
   const fetchProducts = async () => {
@@ -41,81 +51,127 @@ export default function ProductList() {
 
   useEffect(() => {
     fetchProducts();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure?")) return;
+    await deleteAuction(id);
+  };
+
   return (
-    <section className="bg-white rounded-xl shadow-lg p-6 w-full max-w-5xl border border-gray-200 mx-auto mt-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Available Products</h2>
+    <section className="w-full flex flex-col items-center mt-12 px-4">
+      <div className="w-full max-w-[90rem] px-4">
+        {/* Title + Add button – same layout style as AuctionsDashboard */}
+        <div className="flex items-center mb-6 w-full pt-8 pb-4">
+          {/* left spacer */}
+          <div className="flex-1" />
 
-        <Link href="/products/create">
-          <button
-            className="p-2 rounded-full hover:bg-gray-100 transition flex items-center justify-center border border-gray-300"
-            aria-label="Add product"
-          >
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 41 41"
-              fill="#162218"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M22.5499 8.20002C22.5499 7.06612 21.6338 6.15002 20.4999 6.15002C19.366 6.15002 18.4499 7.06612 18.4499 8.20002V18.45H8.1999C7.066 18.45 6.1499 19.3661 6.1499 20.5C6.1499 21.6339 7.066 22.55 8.1999 22.55H18.4499V32.8C18.4499 33.9339 19.366 34.85 20.4999 34.85C21.6338 34.85 22.5499 33.9339 22.5499 32.8V22.55H32.7999C33.9338 22.55 34.8499 21.6339 34.8499 20.5C34.8499 19.3661 33.9338 18.45 32.7999 18.45H22.5499V8.20002Z" />
-            </svg>
-          </button>
-        </Link>
-      </div>
+          {/* centered title */}
+          <h1 className="text-[64px] font-bold text-[#162218] text-center flex-[3]">
+            Products
+          </h1>
 
-      {loading ? (
-        <p className="text-gray-500 text-center py-4">Loading products...</p>
-      ) : products.length === 0 ? (
-        <p className="text-gray-500 text-center py-4">No products available.</p>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-300">
-          <table className="w-full text-left">
-            <thead className="bg-gray-100 text-gray-700">
-              <tr>
-                <th className="p-3 border-b">Species</th>
-                <th className="p-3 border-b">Pot Size</th>
-                <th className="p-3 border-b">Stem Length (cm)</th>
-                <th className="p-3 border-b">Quantity</th>
-                <th className="p-3 border-b">Price (€)</th>
-                <th className="p-3 border-b">Location</th>
-                <th className="p-3 border-b">Auction Date</th>
-                <th className="p-3 border-b text-center">Photo</th>
-              </tr>
-            </thead>
+          {/* right aligned button */}
+          <div className="flex-1 flex justify-end">
+            <RoleGate allow={["supplier"]} fallback={<div className="flex-1 flex justify-end" />}>
+              <Link href="/products/create">
+                <p
+                  className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
+                  aria-label="Create Product"
+                >
+                  <span className="text-[#162218] font-medium">Create Product</span>
 
-            <tbody className="divide-y divide-gray-200">
-              {products.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50 transition">
-                  <td className="p-3">{p.species}</td>
-                  <td className="p-3">{p.potSize}</td>
-                  <td className="p-3">{p.stemLength}</td>
-                  <td className="p-3">{p.quantity}</td>
-                  <td className="p-3 font-semibold">€{p.minPrice.toFixed(2)}</td>
-                  <td className="p-3">{getClockLocationName(p.clockLocation)}</td>
-                  <td className="p-3">{p.auctionDate ?? "-"}</td>
-                  <td className="p-3 text-center">
-                    {p.photoUrl ? (
-                      <Image
-                        src={p.photoUrl}
-                        alt={p.species}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 object-cover rounded-md mx-auto shadow-sm"
-                      />
-                    ) : (
-                      <span className="text-gray-400 text-sm">No photo</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  <Image
+                    src="/images/Plus.svg"
+                    alt="Create Product Icon"
+                    width={40}
+                    height={40}
+                    priority
+                  />
+                </p>
+              </Link>
+            </RoleGate>
+          </div>
         </div>
-      )}
+
+        {loading || deleting ? (
+          <p className="text-gray-500 text-center py-6">Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className="text-gray-500 text-center py-6">No products available.</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-[D9D9D9] p-4">
+            <table className="w-full border-collapse text-left">
+              {/* Header */}
+              <thead className="bg-white">
+                <tr className="text-[#4D4D4D]">
+                  <th className="p-3 text-start">Species</th>
+                  <th className="p-3 text-center">Quantity</th>
+                  <th className="p-3 text-center">Price (€)</th>
+                  <th className="p-3 text-center">Location</th>
+                  <th className="p-3 text-center">Auction Date</th>
+                  <RoleGate allow={["supplier"]}>
+                    <th className="p-3 text-end">Actions</th>
+                  </RoleGate>
+                </tr>
+              </thead>
+
+              {/* Body */}
+              <tbody className="bg-white text-[1A1A1A]">
+                {products.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-[#162218] hover:text-white transition cursor-pointer"
+                    onClick={() => window.location.href = `/products/info/${p.id}`}
+                  >
+                    <td className="p-4 text-start rounded-l-2xl">
+                      {p.species}
+                    </td>
+
+                    <td className="p-4 text-center">{p.quantity}</td>
+
+                    <td className="p-4 text-center">
+                      €{p.minPrice.toFixed(2)}
+                    </td>
+
+                    <td className="p-4 text-center">
+                      {getClockLocationName(p.clockLocation)}
+                    </td>
+
+                    <td className="p-4 text-center">
+                      {p.auctionDate ?? "-"}
+                    </td>
+                    <RoleGate allow={["supplier"]}>
+                      <td className="p-4 text-end rounded-r-2xl">
+                        <div className="flex gap-6 justify-end">
+                          <Link
+                            href={`/products/edit/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline underline-offset-2"
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(p.id);
+                            }}
+                            className="hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </RoleGate>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
