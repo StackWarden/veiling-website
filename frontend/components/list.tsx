@@ -8,27 +8,26 @@ export interface ListHeader {
   align?: "start" | "center" | "end";
 }
 
-interface ListProps {
+interface ListProps<T extends Record<string, unknown>> {
   headers: ListHeader[];
-  rows: Record<string, any>[];
-  rowKey: string;
+  rows: T[];
+  rowKey: keyof T;
   actions?: ReactNode;
-  onRowClick?: (row: any) => void;
+  onRowClick?: (row: T) => void;
 }
 
-export default function List({
+export default function List<T extends Record<string, unknown>>({
   headers,
   rows,
   rowKey,
   actions,
   onRowClick,
-}: ListProps) {
-  return (
+}: ListProps<T>) {
+   return (
     <>
       {/* Actions top right */}
       <div className="flex items-center mb-6 w-full pt-8 pb-4">
         <div className="flex-1" />
-
         {actions ? (
           <div className="flex-1 flex justify-end">{actions}</div>
         ) : (
@@ -41,10 +40,7 @@ export default function List({
           <thead className="bg-white">
             <tr className="text-[#4D4D4D]">
               {headers.map((h) => (
-                <th
-                  key={h.key}
-                  className={`p-3 text-${h.align ?? "start"}`}
-                >
+                <th key={h.key} className={`p-3 text-${h.align ?? "start"}`}>
                   {h.label}
                 </th>
               ))}
@@ -54,23 +50,20 @@ export default function List({
           <tbody className="bg-white text-[1A1A1A]">
             {rows.map((row) => (
               <tr
-                key={row[rowKey]}
+                key={String(row[rowKey])}
                 className="hover:bg-[#162218] hover:text-white transition cursor-pointer"
-                onClick={() => onRowClick && onRowClick(row)}
+                onClick={() => onRowClick?.(row)}
               >
                 {headers.map((h) => (
                   <td
                     key={h.key}
                     className={`p-4 text-${h.align ?? "left"}`}
                   >
-                    {row[h.key]}
+                    {row[h.key] as ReactNode}
                   </td>
                 ))}
 
-                {/* render row actions */}
-                  <td className="p-4 text-end">
-                    {row.actions}
-                  </td>
+                { <td className="p-4 text-end">{row.actions as ReactNode}</td> }
               </tr>
             ))}
           </tbody>
