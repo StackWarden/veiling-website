@@ -48,7 +48,7 @@ export function middleware(req: NextRequest) {
   for (const route in rolePermissions) {
     if (path.startsWith(route)) {
       const allowedRoles = rolePermissions[route];
-      if (!allowedRoles.includes(userRole)) {
+      if (!allowedRoles.includes(userRole) && userRole !== "admin") {
         const deniedPath = req.nextUrl.pathname;
         const url = new URL("/auctions", req.url);
         url.searchParams.set(

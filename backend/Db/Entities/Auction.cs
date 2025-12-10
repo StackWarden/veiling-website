@@ -3,6 +3,7 @@ namespace backend.Db.Entities;
 public class Auction
 {
     public Guid Id { get; set; }
+    public string Description { get; set; } = "Default Description";
     public Guid AuctionneerId { get; set; } = new();
     public DateTime StartTime { get; set; } = new();
     public DateTime EndTime { get; set; } = new();
