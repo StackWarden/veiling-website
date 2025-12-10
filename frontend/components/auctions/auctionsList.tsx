@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import useDelete from "../api/delete";
-import useGet from "../api/get";
-import { RoleGate } from "../RoleGate";
+import useDelete from "@/components/api/delete";
+import useGet from "@/components/api/get";
+import { RoleGate } from "@/components/RoleGate";
+import List from "@/components/list";
+import CreateButton from "@/components/createButton";
 
 type Auction = {
   id: string;
@@ -17,12 +17,14 @@ type Auction = {
 
 export default function AuctionsDashboard() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
+
   const { loading: deleting, execute: deleteAuction } = useDelete({
     baseRoute: "/auctions",
     onSuccess: (id) => {
       setAuctions(prev => prev.filter(a => a.id !== id));
     }
   });
+
   const { loading, execute: fetchAuctions } = useGet<Auction>({
     route: "/auctions",
     autoFetch: false,
@@ -39,7 +41,7 @@ export default function AuctionsDashboard() {
   });
 
   useEffect(() => {
-  fetchAuctions();
+    fetchAuctions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -49,86 +51,50 @@ export default function AuctionsDashboard() {
   };
 
   return (
-
     <section className="w-full flex flex-col items-center mt-12 px-4">
-
       <div className="w-full max-w-[90rem] px-4">
-        <div className="flex items-center mb-6 w-full pt-8 pb-4">
-          {/* spacer div */}
+        <div className="flex items-center w-full pt-8 pb-1">
           <div className="flex-1" />
-
           <h1 className="text-[64px] font-bold text-[#162218] text-center flex-[3]">
             Auction Schedule
           </h1>
 
           <RoleGate allow={["auctioneer"]} fallback={<div className="flex-1 flex justify-end" />}>
-            <Link href="auctions/create" className="flex-1 flex justify-end">
-              <p
-                className="flex flex-row items-center gap-2 p-1 rounded-full hover:cursor-pointer"
-                aria-label="Create auction"
-              >
-                <span className="text-[#162218] font-medium">Create Auction</span>
-                <Image
-                  src="/images/Plus.svg"
-                  alt="Create Auction Icon"
-                  width={40}
-                  height={40}
-                  priority
-                />
-              </p>
-            </Link>
+            <CreateButton href="/auctions/create" label="Create Auction" />
           </RoleGate>
         </div>
 
-        {loading || deleting ? (
+        {(loading || deleting) && (
           <p className="text-gray-500 text-center py-6">Loading auctions...</p>
-        ) : auctions.length === 0 ? (
+        )}
+
+        {!loading && !deleting && auctions.length === 0 && (
           <p className="text-gray-500 text-center py-6">No auctions available.</p>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-[D9D9D9] p-4">
-            <table className="w-full border-collapse text-left">
+        )}
 
-              <thead className="bg-white">
-                <tr className="text-[#4D4D4D]">
-                  <th className="p-3 text-start">Description</th>
-                  <th className="p-3 text-center">Start Date</th>
-                  <th className="p-3 text-center">End Date</th>
-                  <th className="p-3 text-end">Status</th>
-                </tr>
-              </thead>
-
-              <tbody className="bg-white text-[1A1A1A]">
-                {auctions.map((a) => {
-                  return (
-                    <tr key={a.id} className="hover:bg-[#162218] hover:text-white transition cursor-pointer">
-                      <td className="p-4 text-start rounded-l-2xl">{a.description}</td>
-                      <td className="p-4 text-center">{a.startTime}</td>
-                      <td className="p-4 text-center">{a.endTime}</td>
-                      <td className="p-4 text-end">{a.status}</td>
-                      <RoleGate allow={["auctioneer"]}>
-                      <td className="p-4 text-right rounded-r-2xl">
-                        <div className="flex gap-6 justify-end">
-                          {/* <Link
-                            href={`/auctions/info/${a.id}`}
-                            className="hover:underline underline-offset-2"
-                          >
-                            Edit
-                          </Link> */}
-                          <p
-                            onClick={() => handleDelete(a.id)}
-                            className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                          >
-                            Delete
-                          </p>
-                        </div>
-                      </td>
-                      </RoleGate>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+        {!loading && !deleting && auctions.length > 0 && (
+          <List
+            headers={[
+              { key: "description", label: "Description", align: "start" },
+              { key: "startTime", label: "Start Date", align: "center" },
+              { key: "endTime", label: "End Date", align: "center" },
+              { key: "status", label: "Status", align: "end" },
+            ]}
+            rows={auctions.map(a => ({
+              ...a,
+              actions: (
+                <RoleGate allow={["auctioneer"]}>
+                  <p
+                    onClick={() => handleDelete(a.id)}
+                    className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                  >
+                    Delete
+                  </p>
+                </RoleGate>
+              )
+            }))}
+            rowKey="id"
+          />
         )}
       </div>
     </section>

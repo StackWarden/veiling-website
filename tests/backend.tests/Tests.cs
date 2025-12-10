@@ -5,6 +5,7 @@ using FluentAssertions;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
+using System.Net.Http.Headers;
 
 public class AuctionTests : IClassFixture<TestFactory>
 {
@@ -13,6 +14,8 @@ public class AuctionTests : IClassFixture<TestFactory>
     public AuctionTests(TestFactory factory)
     {
         _client = factory.CreateClient();
+        // Authenticate all requests as admin/auctioneer via the test auth scheme.
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestAuth");
     }
 
     // --------------------------------------------------GET REQUESTS--------------------------------------------------
