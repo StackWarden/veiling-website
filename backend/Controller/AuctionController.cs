@@ -66,27 +66,75 @@ public class AuctionController : Controller
     // Uiteindelijk gooien we een Ok() terug met het ID, zodat iedereen blij is.
     [HttpPost]
     [Authorize(Roles = "auctioneer,admin")]
-    public IActionResult CreateAuction([FromBody] CreateAuctionDto dto)
+    public IActionResult CreateAuction([FromBody] CreateAuctionWithItemsDto dto)
     {
-        if (dto == null) {
+        // Valideer de DTO
+        if (dto == null)
             return BadRequest("Request body is required.");
-        }
-        if (dto.EndTime <= dto.StartTime) {
+
+        if (dto.EndTime <= dto.StartTime)
             return BadRequest("End time must be after start time.");
-        }
+
+        // Lege list als er geen items zijn meegestuurd, zodat we nog steeds een veiling kunnen maken
+        var productIds = dto.ProductIds ?? new List<Guid>();
+
+        // Maak de auction aan
         var auction = new Auction
         {
             Id = Guid.NewGuid(),
             AuctionneerId = dto.AuctionneerId,
+            Description = dto.Description,
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
-            Status = dto.Status ?? "draft"
+            Status = dto.Status
         };
 
         _db.Auctions.Add(auction);
         _db.SaveChanges();
 
-        return CreatedAtAction(nameof(GetAuctionById), new { id = auction.Id }, auction);
+        // AuctionItems aanmaken
+        foreach (var productId in productIds)
+        {
+            if (!_db.Products.Any(p => p.Id == productId))
+            {
+                return BadRequest($"Product {productId} does not exist.");
+            }
+
+            var auctionItem = new AuctionItem
+            {
+                Id = Guid.NewGuid(),
+                AuctionId = auction.Id,
+                ProductId = productId,
+                Status = "Pending"
+            };
+
+            _db.AuctionItems.Add(auctionItem);
+        }
+
+        _db.SaveChanges();
+
+        // Bouw response
+        var response = new
+        {
+            auction.Id,
+            auction.Description,
+            auction.StartTime,
+            auction.EndTime,
+            Items = _db.AuctionItems
+                .Where(ai => ai.AuctionId == auction.Id)
+                .Select(ai => new
+                {
+                    ai.Id,
+                    ai.ProductId,
+                    ai.Status
+                })
+                .ToList()
+        };
+
+        return CreatedAtAction(nameof(GetAuctionById),
+            new { id = auction.Id },
+            response
+        );
     }
 
     // PUT: /auctions/{id}
@@ -98,7 +146,7 @@ public class AuctionController : Controller
     // oftewel: de standaard “ja dit hoort eigenlijk in een service-laag” aanpak.
     [HttpPut("{id}")]
     [Authorize(Roles = "auctioneer,admin")]
-    public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionDto dto)
+    public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionWithItemsDto dto)
     {
         var auction = _db.Auctions.Find(id);
         if (auction == null) {
@@ -136,11 +184,14 @@ public class AuctionController : Controller
         return Ok($"Auction {auction.Id} deleted successfully.");// 200 status code returnen en response
     }
 
-    public class CreateAuctionDto
+    public class CreateAuctionWithItemsDto
     {
         public Guid AuctionneerId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = "draft";
+
+        public List<Guid> ProductIds { get; set; } = new();
     }
 }

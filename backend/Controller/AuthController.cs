@@ -74,7 +74,7 @@ public class AuthController : ControllerBase
             Path = "/"
         });
 
-        return Ok(new { message = "Login successful" });
+        return Ok(new { message = "Login successful", token = token});
     }
 
     // POST: /auth/logout

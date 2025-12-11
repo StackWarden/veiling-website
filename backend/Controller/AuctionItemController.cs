@@ -22,8 +22,17 @@ public class AuctionItemController : Controller
     [Authorize]
     public IActionResult GetAllAuctionItems()
     {
-        var auctionItems = _db.AuctionItems.ToList();
-        return Ok(auctionItems);
+        var items = _db.AuctionItems
+            .Select(ai => new
+            {
+                ai.Id,
+                ai.Status,
+                ai.ProductId,
+                ai.AuctionId
+            })
+            .ToList();
+
+        return Ok(items);
     }
 
     // GET: /AuctionItem/{id}
@@ -36,56 +45,6 @@ public class AuctionItemController : Controller
             return NotFound("Auction item not found.");
 
         return Ok(auctionItem);
-    }
-
-    // POST: /AuctionItem
-    [HttpPost]
-    [Authorize(Roles = "auctioneer,admin")]
-    public IActionResult CreateAuctionItem([FromBody] CreateAuctionItemDto dto)
-    {
-        var auctionItem = new AuctionItem();
-        if (auctionItem == null)
-            return BadRequest("Invalid auction item data.");
-
-        if (dto.LotNumber <= 0)
-            return BadRequest("LotNumber must be a positive integer.");
-        
-        if (_db.Auctions.Find(dto.AuctionId) == null)
-            return BadRequest("Referenced Auction does not exist.");
-
-        if (_db.Products.Find(dto.ProductId) == null)
-            return BadRequest("Referenced Product does not exist.");
-
-        if (_db.AuctionItems.Any(ai => ai.AuctionId == dto.AuctionId && ai.ProductId == dto.ProductId))
-            return BadRequest("An auction item with the same AuctionId and ProductId already exists.");
-
-        auctionItem.Id = Guid.NewGuid();
-        auctionItem.AuctionId = dto.AuctionId;
-        auctionItem.ProductId = dto.ProductId;
-        auctionItem.LotNumber = dto.LotNumber;
-        auctionItem.Status = dto.Status;
-
-        _db.AuctionItems.Add(auctionItem);
-        _db.SaveChanges();
-
-        return Ok($"Auction item {auctionItem.Id} created successfully.");
-    }
-
-    // PUT: /AuctionItem/{id}
-    [HttpPut("{id}")]
-    [Authorize(Roles = "auctioneer,admin")]
-    public IActionResult UpdateAuctionItem(Guid id, [FromBody] CreateAuctionItemDto dto)
-    {
-        var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
-        if (auctionItem == null)
-            return NotFound("Auction item not found.");
-
-        auctionItem.LotNumber = dto.LotNumber;
-        auctionItem.Status = dto.Status;
-
-        _db.SaveChanges();
-
-        return Ok($"Auction item {auctionItem.Id} updated successfully.");
     }
 
     // DELETE: /AuctionItem/{id}
@@ -107,7 +66,6 @@ public class AuctionItemController : Controller
     {
         public Guid AuctionId { get; set; }
         public Guid ProductId { get; set; }
-        public int LotNumber { get; set; }
 
         public string Status { get; set; } = "Pending";
     }
