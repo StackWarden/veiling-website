@@ -21,7 +21,8 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "test-user"),
+            // Use a GUID string so controllers that parse NameIdentifier as Guid succeed.
+            new Claim(ClaimTypes.NameIdentifier, "11111111-1111-1111-1111-111111111111"),
             new Claim(ClaimTypes.Name, "Test User"),
             new Claim(ClaimTypes.Role, "admin"),
             new Claim(ClaimTypes.Role, "auctioneer"),
