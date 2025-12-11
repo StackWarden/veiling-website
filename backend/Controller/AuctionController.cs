@@ -3,6 +3,8 @@ using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore; 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
@@ -68,6 +70,12 @@ public class AuctionController : Controller
     [Authorize(Roles = "auctioneer,admin")]
     public IActionResult CreateAuction([FromBody] CreateAuctionWithItemsDto dto)
     {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized("Unable to determine current user.");
+        }
+
         // Valideer de DTO
         if (dto == null)
             return BadRequest("Request body is required.");
@@ -75,14 +83,14 @@ public class AuctionController : Controller
         if (dto.EndTime <= dto.StartTime)
             return BadRequest("End time must be after start time.");
 
-        // Lege list als er geen items zijn meegestuurd, zodat we nog steeds een veiling kunnen maken
+        // Lege list als er geen items zijn meegestuurd, zodat we nogs steeds een veiling kunnen maken
         var productIds = dto.ProductIds ?? new List<Guid>();
 
         // Maak de auction aan
         var auction = new Auction
         {
             Id = Guid.NewGuid(),
-            AuctionneerId = dto.AuctionneerId,
+            AuctionneerId = userId,
             Description = dto.Description,
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,

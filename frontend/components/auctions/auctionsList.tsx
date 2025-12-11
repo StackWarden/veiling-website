@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import useDelete from "@/components/api/delete";
 import useGet from "@/components/api/get";
 import { RoleGate } from "@/components/RoleGate";
@@ -16,6 +17,7 @@ type Auction = {
 };
 
 export default function AuctionsDashboard() {
+  const router = useRouter();
   const [auctions, setAuctions] = useState<Auction[]>([]);
 
   const { loading: deleting, execute: deleteAuction } = useDelete({
@@ -48,6 +50,10 @@ export default function AuctionsDashboard() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
     await deleteAuction(id);
+  };
+
+  const handleRowClick = (auction: Auction) => {
+    router.push(`/auctioninfo/${auction.id}`);
   };
 
   return (
@@ -85,7 +91,10 @@ export default function AuctionsDashboard() {
               actions: (
                 <RoleGate allow={["auctioneer"]}>
                   <p
-                    onClick={() => handleDelete(a.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(a.id);
+                    }}
                     className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
                   >
                     Delete
@@ -94,6 +103,7 @@ export default function AuctionsDashboard() {
               )
             }))}
             rowKey="id"
+            onRowClick={handleRowClick}
           />
         )}
       </div>
