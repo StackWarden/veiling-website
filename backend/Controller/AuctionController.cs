@@ -72,81 +72,69 @@ public class AuctionController : Controller
         if (dto == null)
             return BadRequest("Request body is required.");
 
-        if (dto.ProductIds == null || !dto.ProductIds.Any())
-            return BadRequest("At least one product is required.");
-
         if (dto.EndTime <= dto.StartTime)
             return BadRequest("End time must be after start time.");
 
-        using var transaction = _db.Database.BeginTransaction();
+        // Lege list als er geen items zijn meegestuurd, zodat we nog steeds een veiling kunnen maken
+        var productIds = dto.ProductIds ?? new List<Guid>();
 
-        try
+        // Maak de auction aan
+        var auction = new Auction
         {
-            // Maak de auction aan
-            var auction = new Auction
+            Id = Guid.NewGuid(),
+            AuctionneerId = dto.AuctionneerId,
+            Description = dto.Description,
+            StartTime = dto.StartTime,
+            EndTime = dto.EndTime,
+            Status = dto.Status
+        };
+
+        _db.Auctions.Add(auction);
+        _db.SaveChanges();
+
+        // AuctionItems aanmaken
+        foreach (var productId in productIds)
+        {
+            if (!_db.Products.Any(p => p.Id == productId))
             {
-                Id = Guid.NewGuid(),
-                AuctionneerId = dto.AuctionneerId,
-                Description = dto.Description,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
-                Status = dto.Status
-            };
-
-            _db.Auctions.Add(auction);
-            _db.SaveChanges();
-
-            // AuctionItems aanmaken
-            foreach (var productId in dto.ProductIds)
-            {
-                if (!_db.Products.Any(p => p.Id == productId))
-                {
-                    transaction.Rollback(); // Geen items dan rollback dus dan gaat ook de auction er niet in
-                    return BadRequest($"Product {productId} does not exist.");
-                }
-
-                var auctionItem = new AuctionItem
-                {
-                    Id = Guid.NewGuid(),
-                    AuctionId = auction.Id,
-                    ProductId = productId,
-                    Status = "Pending"
-                };
-
-                _db.AuctionItems.Add(auctionItem);
+                return BadRequest($"Product {productId} does not exist.");
             }
 
-            _db.SaveChanges();
-            transaction.Commit(); // Commit de transaction
-
-            // Bouw response
-            var response = new
+            var auctionItem = new AuctionItem
             {
-                auction.Id,
-                auction.Description,
-                auction.StartTime,
-                auction.EndTime,
-                Items = _db.AuctionItems
-                    .Where(ai => ai.AuctionId == auction.Id)
-                    .Select(ai => new
-                    {
-                        ai.Id,
-                        ai.ProductId,
-                        ai.Status
-                    })
-                    .ToList()
+                Id = Guid.NewGuid(),
+                AuctionId = auction.Id,
+                ProductId = productId,
+                Status = "Pending"
             };
 
-            return CreatedAtAction(nameof(GetAuctionById),
-                new { id = auction.Id },
-                response
-            );
+            _db.AuctionItems.Add(auctionItem);
         }
-        catch
+
+        _db.SaveChanges();
+
+        // Bouw response
+        var response = new
         {
-            transaction.Rollback(); // Als iets mis gaat rollback
-            throw;
-        }
+            auction.Id,
+            auction.Description,
+            auction.StartTime,
+            auction.EndTime,
+            Items = _db.AuctionItems
+                .Where(ai => ai.AuctionId == auction.Id)
+                .Select(ai => new
+                {
+                    ai.Id,
+                    ai.ProductId,
+                    ai.Status
+                })
+                .ToList()
+        };
+
+        return CreatedAtAction(nameof(GetAuctionById),
+            new { id = auction.Id },
+            response
+        );
     }
 
     // PUT: /auctions/{id}
