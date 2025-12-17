@@ -4,19 +4,24 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 
+/* ---------- Types ---------- */
+
+type Species = {
+  id: string;
+  title: string;
+};
+
 type Product = {
   id: string;
-  species: string;
+  species: Species;
   potSize: string;
   stemLength: number;
   quantity: number;
   minPrice: number;
-  clockLocation: string;
-  auctionDate: string | null;
   photoUrl: string | null;
 };
 
-const Clock_locations = ["Naaldwijk", "Aalsmeer", "Rijnsburg", "Eelde"];
+/* ---------- Component ---------- */
 
 export default function ProductInfo() {
   const { id } = useParams();
@@ -24,30 +29,35 @@ export default function ProductInfo() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`,
-        {
-          credentials: "include",
-        });
-      const data = await res.json();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/${id}`,
+        { credentials: "include" }
+      );
+
+      const data: Product = await res.json();
       setProduct(data);
     };
 
     fetchProduct();
   }, [id]);
 
-  if (!product) return <p className="text-center mt-10">Loading...</p>;
+  if (!product) {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
 
   return (
     <div className="w-full flex flex-col items-center mt-12">
-      <h1 className="text-[32px] font-bold text-[#162218] mb-8">Product info</h1>
+      <h1 className="text-[32px] font-bold text-[#162218] mb-8">
+        Product info
+      </h1>
 
       <div className="flex gap-16">
-        {/* foto */}
+        {/* PHOTO */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9] w-[350px] h-[350px]">
           {product.photoUrl ? (
             <Image
               src={product.photoUrl}
-              alt={product.species}
+              alt={product.species.title}
               width={350}
               height={350}
               className="object-cover w-full h-full"
@@ -59,22 +69,26 @@ export default function ProductInfo() {
           )}
         </div>
 
-        {/* info */}
+        {/* INFO */}
         <div className="border border-[#D9D9D9] rounded-xl p-8 w-[350px] shadow-sm">
           <h2 className="text-2xl font-semibold text-[#162218] mb-6">
-            {product.species}
+            {product.species.title}
           </h2>
 
           {[
-            { label: "Species", value: product.species },
+            { label: "Species", value: product.species.title },
             { label: "Pot Size", value: product.potSize },
             { label: "Stem Length (cm)", value: product.stemLength },
             { label: "Quantity", value: product.quantity },
-            { label: "Price (€)", value: `€${product.minPrice.toFixed(2)}` },
-            { label: "Clock location", value: Clock_locations[Number(product.clockLocation)] },
-            { label: "Auction date", value: product.auctionDate ?? "—" },
+            {
+              label: "Price (€)",
+              value: `€${product.minPrice.toFixed(2)}`,
+            },
           ].map(({ label, value }) => (
-            <div key={label} className="flex justify-between items-center mb-4">
+            <div
+              key={label}
+              className="flex justify-between items-center mb-4"
+            >
               <span className="font-medium text-black">{label}</span>
               <span className="text-gray-700">{value}</span>
             </div>

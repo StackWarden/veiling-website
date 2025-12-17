@@ -123,6 +123,20 @@ public class AuthController : ControllerBase
         });
     }
 
+    [Authorize]
+    [HttpGet("name/{id:guid}")]
+    public async Task<IActionResult> GetUserNameById(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null)
+            return NotFound();
+
+        return Ok(new
+        {
+            name = user.Name
+        });
+    }
+
     // POST: /auth/register
     // Maakt een nieuwe gebruiker aan op basis van de opgegeven data.
     // Controleert of de email nog niet bestaat, we zijn tenslotte geen duplicatenverzamelaars.
