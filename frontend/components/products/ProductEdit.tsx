@@ -4,21 +4,22 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 
+type Species = {
+  id: string;
+  title: string;
+};
+
 type Product = {
   id: string;
-  species: string;
+  species: Species;
   potSize: string;
   stemLength: number;
   quantity: number;
   minPrice: number;
-  clockLocation: string;
-  auctionDate: string | null;
   photoUrl: string | null;
 };
 
-const Clock_locations = ["Naaldwijk", "Aalsmeer", "Rijnsburg", "Eelde"]
-
-export default function ProductInfo() {
+export default function ProductEdit() {
   const { id } = useParams();
   const router = useRouter();
 
@@ -26,55 +27,48 @@ export default function ProductInfo() {
   const [editField, setEditField] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    species: "",
     potSize: "",
     stemLength: "",
     quantity: "",
     minPrice: "",
-    clockLocation: "",
-    auctionDate: "",
   });
 
   type FormKey = keyof typeof form;
 
-
+  /* ---------- Fetch ---------- */
   useEffect(() => {
     const fetchProduct = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/products/${id}`,
+        { credentials: "include" }
+      );
 
+      const data: Product = await res.json();
       setProduct(data);
 
       setForm({
-        species: data.species,
         potSize: data.potSize,
-        stemLength: data.stemLength,
-        quantity: data.quantity,
-        minPrice: data.minPrice,
-        clockLocation: Clock_locations[Number(data.clockLocation)],
-        auctionDate: data.auctionDate ?? "",
+        stemLength: String(data.stemLength),
+        quantity: String(data.quantity),
+        minPrice: String(data.minPrice),
       });
     };
 
     fetchProduct();
   }, [id]);
 
+  /* ---------- Save ---------- */
   const saveChanges = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
       method: "PUT",
-      credentials: 'include',
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        species: form.species,
         potSize: form.potSize,
         stemLength: Number(form.stemLength),
         quantity: Number(form.quantity),
         minPrice: Number(form.minPrice),
-        clockLocation: form.clockLocation,
-        auctionDate: form.auctionDate || "",
-        photoUrl: product?.photoUrl ?? ""
+        photoUrl: product?.photoUrl ?? null,
       }),
     });
 
@@ -82,19 +76,24 @@ export default function ProductInfo() {
     router.push("/products");
   };
 
-  if (!product) return <p className="text-center mt-10">Loading...</p>;
+  if (!product) {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
 
+  /* ---------- UI ---------- */
   return (
     <div className="w-full flex flex-col items-center mt-12">
-      <h1 className="text-[32px] font-bold text-[#162218] mb-8">Product info</h1>
+      <h1 className="text-[32px] font-bold text-[#162218] mb-10">
+        Product info
+      </h1>
 
       <div className="flex gap-16">
-        {/* foto */}
+        {/* PHOTO */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9] w-[350px] h-[350px]">
           {product.photoUrl ? (
             <Image
               src={product.photoUrl}
-              alt={product.species}
+              alt={product.species.title}
               width={350}
               height={350}
               className="object-cover w-full h-full"
@@ -106,58 +105,39 @@ export default function ProductInfo() {
           )}
         </div>
 
-        {/* info */}
-        <div className="border border-[#D9D9D9] rounded-xl p-8 w-[350px] shadow-sm">
-          <h2 className="text-2xl font-semibold text-[#162218] mb-6">
-            {product.species}
+        {/* INFO */}
+        <div className="border border-[#D9D9D9] rounded-xl p-8 w-[380px] shadow-sm">
+          <h2 className="text-2xl font-semibold text-[#162218] mb-8">
+            {product.species.title}
           </h2>
 
           {[
-            { label: "Species", key: "species" as FormKey },
             { label: "Pot Size", key: "potSize" as FormKey },
             { label: "Stem Length (cm)", key: "stemLength" as FormKey },
             { label: "Quantity", key: "quantity" as FormKey },
             { label: "Price (€)", key: "minPrice" as FormKey },
-            { label: "Clock location", key: "clockLocation" as FormKey },
-            { label: "Auction date", key: "auctionDate" as FormKey },
           ].map(({ label, key }) => (
-            <div key={key} className="flex justify-between items-center mb-4">
-              <span className="font-medium text-black">{label}</span>
+            <div
+              key={key}
+              className="flex justify-between items-center mb-5"
+            >
+              <span className="font-medium">{label}</span>
 
               {editField === key ? (
-                key === "clockLocation" ? (
-                  <select
-                    value={form.clockLocation}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, clockLocation: e.target.value }))
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
-                  >
-                    {Clock_locations.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-
-                  <input
-                    type="text"
-                    value={form[key]}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, [key]: e.target.value }))
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
-                  />
-                )
+                <input
+                  type="text"
+                  value={form[key]}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, [key]: e.target.value }))
+                  }
+                  className="border border-gray-300 rounded px-3 py-1 text-sm w-32"
+                />
               ) : (
-                <span className="text-gray-700">
-                  {form[key] || "—"}
-                </span>
+                <span className="text-gray-700">{form[key]}</span>
               )}
 
               <button
-                className="text-sm ml-3 text-[#162218] hover:underline underline-offset-2"
+                className="text-sm ml-4 text-[#162218] hover:underline underline-offset-2"
                 onClick={() => setEditField(editField === key ? null : key)}
               >
                 Edit
@@ -167,7 +147,7 @@ export default function ProductInfo() {
 
           <button
             onClick={saveChanges}
-            className="mt-6 w-full bg-[#162218] text-white py-2 rounded-lg text-center hover:bg-[#0f1c14] transition"
+            className="mt-8 w-full bg-[#162218] text-white py-3 rounded-lg hover:bg-[#0f1c14] transition"
           >
             Save changes
           </button>

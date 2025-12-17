@@ -94,14 +94,14 @@ export default function Header() {
                         </a>
                         <RoleGate allow={["admin"]}>
                             <a
-                                href="/notifications"
+                                href="/species"
                                 className={
-                                    isActive("/notifications")
+                                    isActive("/species")
                                         ? "underline underline-offset-4"
                                         : "hover:text-gray-600 transition"
                                 }
                             >
-                                Messages
+                                Species
                             </a>
                         </RoleGate>
 

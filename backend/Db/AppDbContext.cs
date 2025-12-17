@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<SaleResult> SaleResults { get; set; }
     public DbSet<Bid> Bids { get; set; }
     public DbSet<AuctionItem> AuctionItems { get; set; }
+    public DbSet<Species> Species => Set<Species>();
 
     protected override void OnModelCreating(ModelBuilder ModelBuilder)
     {

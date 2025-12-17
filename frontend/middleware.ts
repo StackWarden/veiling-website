@@ -40,6 +40,7 @@ export function middleware(req: NextRequest) {
   // Role + allowed routes map
   const rolePermissions: Record<string, string[]> = {
     "/products": ["supplier", "admin"],
+    "/species": ["admin"],
     "/auctions/create": ["auctioneer"],
     "/auctions/delete": ["auctioneer"],
   };

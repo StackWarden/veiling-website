@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Opties voor de useGet-hook.
@@ -76,6 +76,7 @@ export default function useGet<TData = unknown>({
   const [data, setData] = useState<TData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const hasFetchedRef = useRef(false);
 
   /**
    * Voert de GET-aanvraag uit.
@@ -114,7 +115,11 @@ export default function useGet<TData = unknown>({
    * Automatisch uitvoeren bij mount of wanneer afhankelijkheden wijzigen.
    */
   useEffect(() => {
-    if (autoFetch) void execute();
+    if (!autoFetch) return;
+    if (hasFetchedRef.current) return;
+
+    hasFetchedRef.current = true;
+    void execute();
   }, [autoFetch, execute]);
 
   return { data, loading, error, execute, setData };
