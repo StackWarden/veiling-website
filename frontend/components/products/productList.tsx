@@ -120,7 +120,7 @@ export default function ProductList() {
                     <td className="p-4 rounded-l-2xl">
                       {p.species.title}
                     </td>
-                    <td className="p-4 rounded-l-2xl">
+                    <td className="p-4">
                       <SupplierName supplierId={p.supplierId} />
                     </td>
                     <td className="p-4 text-center">{p.quantity}</td>

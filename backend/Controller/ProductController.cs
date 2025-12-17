@@ -3,6 +3,7 @@ using backend.Db;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
@@ -50,6 +51,11 @@ public class ProductController : Controller
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid supplierId))
+        {
+            return Unauthorized("Invalid user id");
+        }
         // check of species bestaat
         var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
         if (!speciesExists)
@@ -58,7 +64,7 @@ public class ProductController : Controller
         var product = new Product
         {
             Id = Guid.NewGuid(),
-            SupplierId = dto.SupplierId,
+            SupplierId = supplierId,
             SpeciesId = dto.SpeciesId,
             PotSize = dto.PotSize,
             StemLength = dto.StemLength,
