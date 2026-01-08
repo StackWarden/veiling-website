@@ -30,6 +30,7 @@ export default function AddProduct() {
   const [minPrice, setMinPrice] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [success, setSuccess] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   /* ---------- GET Species ---------- */
   const {
@@ -55,13 +56,46 @@ export default function AddProduct() {
 
     const potSize = `${potHeight}mm x ${potDiameter}mm`;
 
+    let photoUrl: string | null = null;
+
+    // Upload image to Vercel Blob if a photo is selected
+    if (photo) {
+      try {
+        setUploading(true);
+        const timestamp = Date.now();
+        const filename = `products/${timestamp}-${photo.name}`;
+        
+        const response = await fetch(
+          `/api/upload?filename=${encodeURIComponent(filename)}`,
+          {
+            method: 'POST',
+            body: photo,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const blob = await response.json();
+        photoUrl = blob.url;
+      } catch (err) {
+        console.error('Error uploading image:', err);
+        alert('Failed to upload image. Please try again.');
+        setUploading(false);
+        return;
+      } finally {
+        setUploading(false);
+      }
+    }
+
     await createProduct({
       speciesId,
       potSize,
       stemLength: Number(stemLength),
       quantity: Number(quantity),
       minPrice: Number(minPrice),
-      photoUrl: photo ? photo.name : null,
+      photoUrl,
     });
   };
 
@@ -176,9 +210,10 @@ export default function AddProduct() {
 
         <button
           type="submit"
-          className="w-full mt-6 bg-[#162218] text-white py-4 rounded-lg font-semibold hover:bg-[#0f1c14] transition"
+          disabled={uploading}
+          className="w-full mt-6 bg-[#162218] text-white py-4 rounded-lg font-semibold hover:bg-[#0f1c14] transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Submit
+          {uploading ? 'Uploading image...' : 'Submit'}
         </button>
       </form>
     </div>
