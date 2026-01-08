@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import MessageBanner from "@/components/messageBanner";
@@ -118,7 +118,9 @@ export default function Header() {
 
                 </div>
             </header>
-            <MessageBanner />
+            <Suspense fallback={null}>
+                <MessageBanner />
+            </Suspense>
         </>
     );
 }
