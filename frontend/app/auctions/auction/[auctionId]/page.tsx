@@ -1,4 +1,4 @@
-import Header from "@/components/header"
+import Header from "@/components/header";
 import AuctionScreen from "@/components/auction/AuctionScreen";
 
 type Props = {
@@ -7,7 +7,7 @@ type Props = {
   };
 };
 
-export default function AuctionPage({ params }: Props) {
+export default async function AuctionPage({ params }: Props) {
   return (
     <>
       <Header />
