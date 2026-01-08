@@ -28,7 +28,10 @@ public class AuctionItemController : Controller
                 ai.Id,
                 ai.Status,
                 ai.ProductId,
-                ai.AuctionId
+                ai.AuctionId,
+                ai.BuyerId,
+                ai.SoldAtUtc,
+                ai.SoldPrice
             })
             .ToList();
 

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Db;
 using backend.Db.Entities;
-using Microsoft.EntityFrameworkCore; 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Data;
 
 namespace backend.Controllers;
 
@@ -10,8 +12,9 @@ namespace backend.Controllers;
 public class AuctionController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly Services.IAuctionLiveRuntime _live;
 
-    public AuctionController(AppDbContext db)
+    public AuctionController(AppDbContext db, backend.Services.IAuctionLiveRuntime live)
     {
         /*
             Disclaimer: Deze comments zijn puur geplaatst omdat de docent vond dat er
@@ -26,6 +29,7 @@ public class AuctionController : Controller
             veilingen dat had het Single Responsibility Principle (SRP) lekker schoon gehouden.
         */
         _db = db;
+        _live = live;
     }
 
     // GET: /auctions
@@ -105,7 +109,7 @@ public class AuctionController : Controller
                 Id = Guid.NewGuid(),
                 AuctionId = auction.Id,
                 ProductId = productId,
-                Status = "Pending"
+                Status = AuctionItemStatus.Pending
             };
 
             _db.AuctionItems.Add(auctionItem);
@@ -182,6 +186,274 @@ public class AuctionController : Controller
         _db.SaveChanges();
 
         return Ok($"Auction {auction.Id} deleted successfully.");// 200 status code returnen en response
+    }
+
+    [HttpPost("{id:guid}/live/start")]
+    [Authorize(Roles = "auctioneer,admin")]
+    public async Task<IActionResult> StartLive(Guid id)
+    {
+        var auction = await _db.Auctions
+            .Include(a => a.AuctionItems)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (auction is null) return NotFound("Auction not found.");
+
+        // Selecteer items (stable)
+        var items = auction.AuctionItems
+            .OrderBy(ai => ai.Status == AuctionItemStatus.Pending ? 0 : 1)
+            .ThenBy(ai => ai.Id)
+            .ToList();
+            
+        if (items.Count == 0) return BadRequest("Auction has no items.");
+
+        var state = _live.GetOrCreate(id);
+        state.IsRunning = true;
+        state.RoundIndex = 1;
+        state.RoundStartedAtUtc = DateTime.UtcNow;
+
+        // Start bij eerste pending
+        state.CurrentAuctionItemId = items.First().Id;
+
+        return Ok(await BuildLiveDto(id, state));
+    }
+
+    [HttpGet("{id:guid}/live")]
+    [Authorize]
+    public async Task<IActionResult> GetLive(Guid id)
+    {
+        if (!_live.TryGet(id, out var state))
+        {
+            // nog niet gestart
+            return Ok(new LiveAuctionDto
+            {
+                AuctionId = id,
+                Status = "stopped",
+                ServerTimeUtc = DateTime.UtcNow,
+                RoundIndex = 0,
+                MaxRounds = 3
+            });
+        }
+
+        return Ok(await BuildLiveDto(id, state));
+    }
+
+    [HttpPost("{id:guid}/live/bid")]
+    [Authorize(Roles = "buyer,supplier,admin")]
+    public async Task<IActionResult> PlaceLiveBid(Guid id, [FromBody] PlaceLiveBidDto dto)
+    {
+        if (!_live.TryGet(id, out var state) || !state.IsRunning)
+            return BadRequest("Auction is not running.");
+
+        if (state.CurrentAuctionItemId is null)
+            return BadRequest("No current auction item.");
+
+        if (dto.AuctionItemId != state.CurrentAuctionItemId.Value)
+            return Conflict("Bid is not for the current auction item.");
+
+        if (dto.Quantity <= 0)
+            return BadRequest("Quantity must be > 0.");
+
+        var buyerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(buyerIdString, out var buyerId))
+            return Unauthorized("Invalid user id");
+
+        var now = DateTime.UtcNow;
+
+        var liveDtoBefore = await BuildLiveDto(id, state);
+        var acceptedPrice = liveDtoBefore.CurrentPrice;
+
+        var currentItemId = state.CurrentAuctionItemId.Value;
+
+        var roundStartedAt = state.RoundStartedAtUtc;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+        var bidAlreadyPlacedThisRound = await _db.Bids.AnyAsync(b =>
+            b.AuctionId == id &&
+            b.AuctionItemId == currentItemId &&
+            b.CreatedAtUtc > roundStartedAt);
+
+        if (bidAlreadyPlacedThisRound)
+            return Conflict("A bid was already placed this round.");
+
+        var item = await _db.AuctionItems.FirstOrDefaultAsync(ai => ai.Id == currentItemId);
+        if (item is null)
+            return NotFound("Auction item not found.");
+
+        if (item.Status == AuctionItemStatus.Sold || item.Status == AuctionItemStatus.Passed)
+            return Conflict("Auction item is no longer live.");
+
+        var bid = new Bid
+        {
+            Id = Guid.NewGuid(),
+            AuctionId = id,
+            AuctionItemId = currentItemId,
+            BuyerId = buyerId,
+            Price = acceptedPrice,
+            Quantity = dto.Quantity,
+            CreatedAtUtc = now
+        };
+
+        _db.Bids.Add(bid);
+
+        var isFinalBid = state.RoundIndex >= state.MaxRounds;
+
+        if (isFinalBid)
+        {
+            item.Status = AuctionItemStatus.Sold;
+            item.BuyerId = buyerId;
+            item.SoldPrice = acceptedPrice;
+            item.SoldAtUtc = now;
+
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            // Naar volgende item
+            await AdvanceInternal(id, state);
+        }
+        else
+        {
+            if (item.Status == AuctionItemStatus.Pending)
+                item.Status = AuctionItemStatus.Live;
+
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            state.RoundIndex += 1;
+            state.RoundStartedAtUtc = now;
+        }
+
+        var liveDtoAfter = await BuildLiveDto(id, state);
+
+        return Ok(new
+        {
+            accepted = true,
+            acceptedPrice,
+            bidId = bid.Id,
+            final = isFinalBid,
+            state = liveDtoAfter
+        });
+    }
+
+
+
+    [HttpPost("{id:guid}/live/advance")]
+    [Authorize(Roles = "auctioneer,admin")]
+    public async Task<IActionResult> AdvanceLive(Guid id)
+    {
+        if (!_live.TryGet(id, out var state) || !state.IsRunning)
+            return BadRequest("Auction is not running.");
+
+        await AdvanceInternal(id, state);
+        return Ok(await BuildLiveDto(id, state));
+    }
+
+    private async Task AdvanceInternal(Guid auctionId, backend.Services.AuctionLiveState state)
+    {
+        var auction = await _db.Auctions
+            .Include(a => a.AuctionItems)
+                .ThenInclude(ai => ai.Product)
+                    .ThenInclude(p => p.Species)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction is null) return;
+
+        var items = auction.AuctionItems
+            .OrderBy(ai => ai.Status == AuctionItemStatus.Pending ? 0 : 1)
+            .ThenBy(ai => ai.Id)
+            .ToList();
+
+        var nextId = PickNextItemId(items, state.CurrentAuctionItemId);
+        state.CurrentAuctionItemId = nextId;
+        state.RoundIndex = 1;
+        state.RoundStartedAtUtc = DateTime.UtcNow;
+
+        if (nextId is null)
+        {
+            state.IsRunning = false; // done
+        }
+    }
+
+    private static Guid? PickNextItemId(List<AuctionItem> items, Guid? currentId)
+    {
+        if (items.Count == 0) return null;
+        if (currentId is null) return items[0].Id;
+
+        var idx = items.FindIndex(x => x.Id == currentId.Value);
+        if (idx < 0) return items[0].Id;
+        return (idx + 1 < items.Count) ? items[idx + 1].Id : (Guid?)null;
+    }
+    private async Task<LiveAuctionDto> BuildLiveDto(Guid auctionId, backend.Services.AuctionLiveState state)
+    {
+        var now = DateTime.UtcNow;
+
+        var auction = await _db.Auctions
+            .AsNoTracking()
+            .Include(a => a.AuctionItems)
+                .ThenInclude(ai => ai.Product)
+                    .ThenInclude(p => p.Species)
+            .FirstOrDefaultAsync(a => a.Id == auctionId);
+
+        if (auction is null)
+        {
+            return new LiveAuctionDto
+            {
+                AuctionId = auctionId,
+                Status = state.IsRunning ? "running" : "stopped",
+                ServerTimeUtc = now,
+                RoundIndex = state.RoundIndex,
+                MaxRounds = state.MaxRounds,
+                RoundStartedAtUtc = state.RoundStartedAtUtc
+            };
+        }
+
+        var items = auction.AuctionItems
+            .OrderBy(ai => ai.Status == AuctionItemStatus.Pending ? 0 : 1)
+            .ThenBy(ai => ai.Id)
+            .ToList();
+
+        AuctionItem? current = null;
+        if (state.CurrentAuctionItemId is not null)
+            current = items.FirstOrDefault(x => x.Id == state.CurrentAuctionItemId.Value);
+
+        var nextId = (current is null) ? null : PickNextItemId(items, current.Id);
+
+        var minPrice = current?.Product.MinPrice ?? 0m;
+
+        var elapsedSeconds = (decimal)(now - state.RoundStartedAtUtc).TotalSeconds;
+        var raw = state.StartingPrice - (elapsedSeconds * state.DecrementPerSecond);
+        var currentPrice = Math.Max(minPrice, raw);
+
+        return new LiveAuctionDto
+        {
+            AuctionId = auctionId,
+            Status = state.IsRunning ? "running" : "stopped",
+            ServerTimeUtc = now,
+
+            RoundIndex = state.RoundIndex,
+            MaxRounds = state.MaxRounds,
+            RoundStartedAtUtc = state.RoundStartedAtUtc,
+
+            StartingPrice = state.StartingPrice,
+            MinPrice = minPrice,
+            DecrementPerSecond = state.DecrementPerSecond,
+            CurrentPrice = currentPrice,
+
+            AuctionItemId = current?.Id,
+            Product = current is null ? null : new ProductLiveDto
+            {
+                Id = current.Product.Id,
+                Title = current.Product.Species?.Title ?? "Plant",
+                PhotoUrl = current.Product.PhotoUrl,
+                Species = current.Product.Species?.LatinName ?? "Plant",
+                StemLength = current.Product.StemLength,
+                Quantity = current.Product.Quantity,
+                MinPrice = current.Product.MinPrice,
+                PotSize = current.Product.PotSize
+            },
+
+            NextAuctionItemId = nextId
+        };
     }
 
     public class CreateAuctionWithItemsDto

@@ -78,6 +78,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    
 })
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
@@ -110,6 +111,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<backend.Services.IAuctionLiveRuntime, backend.Services.AuctionLiveRuntime>();
 
 var allowedOrigins = new[]
 {
