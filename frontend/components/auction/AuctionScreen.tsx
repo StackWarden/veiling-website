@@ -171,9 +171,7 @@ export default function AuctionScreen({ auctionId }: Props) {
     const p = live?.product;
     if (!p) return null;
 
-    const imageUrl =
-      p.photoUrl ??
-      "https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?auto=format&fit=crop&w=1200&q=80";
+    const imageUrl = p.photoUrl ?? "/images/placeholder.jpg";
 
     return {
       title: p.title,
@@ -197,8 +195,7 @@ export default function AuctionScreen({ auctionId }: Props) {
   const showNext = Boolean(live?.nextAuctionItemId);
   const nextPlaceholder = {
     title: "Next item",
-    imageUrl:
-      "https://images.unsplash.com/photo-1545231097-cbd796f1d95d?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: "/images/placeholder.jpg",
     species: "—",
     minimumPrice: "—",
     quantity: "—",

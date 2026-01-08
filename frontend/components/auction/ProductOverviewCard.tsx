@@ -1,4 +1,7 @@
 // components/auction/ProductOverviewCard.tsx
+"use client";
+
+import { useState, useEffect } from "react";
 import ExtraInfoList, { ExtraInfoItem } from "@/components/auction/ExtraInfoList";
 
 type Props = {
@@ -8,6 +11,14 @@ type Props = {
 };
 
 export default function ProductOverviewCard({ title, imageUrl, extraInfo }: Props) {
+  const [imgError, setImgError] = useState(false);
+  const displayImageUrl = imgError || !imageUrl ? "/images/placeholder.jpg" : imageUrl;
+
+  // Reset error state when imageUrl changes
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
+
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -17,7 +28,12 @@ export default function ProductOverviewCard({ title, imageUrl, extraInfo }: Prop
           <div className="mt-4 overflow-hidden rounded-2xl bg-neutral-100">
             <div className="aspect-[4/5] w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+              <img 
+                src={displayImageUrl} 
+                alt={title} 
+                className="h-full w-full object-cover"
+                onError={() => setImgError(true)}
+              />
             </div>
           </div>
         </div>

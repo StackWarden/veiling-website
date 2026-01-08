@@ -1,4 +1,8 @@
 // components/auction/NextProductCard.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+
 type Props = {
   title: string;
   imageUrl: string;
@@ -17,6 +21,14 @@ function StatCell({ value }: { value: string }) {
 }
 
 export default function NextProductCard({ title, imageUrl, species, minimumPrice, quantity, onNext }: Props) {
+  const [imgError, setImgError] = useState(false);
+  const displayImageUrl = imgError || !imageUrl ? "/images/placeholder.jpg" : imageUrl;
+
+  // Reset error state when imageUrl changes
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
+
   return (
     <>
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -25,7 +37,12 @@ export default function NextProductCard({ title, imageUrl, species, minimumPrice
         <div className="mt-2 overflow-hidden rounded-2xl bg-neutral-100">
             <div className="aspect-[16/10] w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+            <img 
+              src={displayImageUrl} 
+              alt={title} 
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
+            />
             </div>
         </div>
 
