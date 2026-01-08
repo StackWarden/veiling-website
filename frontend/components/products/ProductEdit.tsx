@@ -64,6 +64,7 @@ export default function ProductEdit() {
     let photoUrl: string | null = product?.photoUrl ?? null;
 
     // Upload new image to Vercel Blob if a photo is selected
+    // If upload fails (no token cause we broke ahh students)), keep existing image or continue without
     if (photo) {
       try {
         setUploading(true);
@@ -78,17 +79,18 @@ export default function ProductEdit() {
           }
         );
 
-        if (!response.ok) {
-          throw new Error('Failed to upload image');
+        if (response.ok) {
+          const blob = await response.json();
+          photoUrl = blob.url;
+        } else {
+          // If upload fails (no token cause we broke ahh students)), keep existing image
+          console.warn('Image upload failed, keeping existing image');
+          // photoUrl already set to product?.photoUrl ?? null above
         }
-
-        const blob = await response.json();
-        photoUrl = blob.url;
       } catch (err) {
-        console.error('Error uploading image:', err);
-        alert('Failed to upload image. Please try again.');
-        setUploading(false);
-        return;
+        // If upload fails, keep existing image
+        console.warn('Image upload failed, keeping existing image:', err);
+        // photoUrl already set to product?.photoUrl ?? null above
       } finally {
         setUploading(false);
       }

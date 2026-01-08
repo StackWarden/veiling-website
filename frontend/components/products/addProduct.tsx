@@ -59,6 +59,7 @@ export default function AddProduct() {
     let photoUrl: string | null = null;
 
     // Upload image to Vercel Blob if a photo is selected
+    // If upload fails (no token cause we broke ahh students), continue without image
     if (photo) {
       try {
         setUploading(true);
@@ -73,17 +74,18 @@ export default function AddProduct() {
           }
         );
 
-        if (!response.ok) {
-          throw new Error('Failed to upload image');
+        if (response.ok) {
+          const blob = await response.json();
+          photoUrl = blob.url;
+        } else {
+          // If upload fails (no token cause we broke ahh students), just continue without image
+          console.warn('Image upload failed, continuing without image');
+          photoUrl = null;
         }
-
-        const blob = await response.json();
-        photoUrl = blob.url;
       } catch (err) {
-        console.error('Error uploading image:', err);
-        alert('Failed to upload image. Please try again.');
-        setUploading(false);
-        return;
+        // If upload fails, just continue without image
+        console.warn('Image upload failed, continuing without image:', err);
+        photoUrl = null;
       } finally {
         setUploading(false);
       }
