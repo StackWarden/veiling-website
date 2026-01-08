@@ -43,4 +43,36 @@ public class UserController : ControllerBase
         // Geen ingewikkelde DTO's of filters, gewoon de basics.
         return Ok(users);
     }
+
+    [HttpPost("{id}/roles")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> AddRoleToUser(Guid id, [FromBody] string role)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound("User not found.");
+
+        var roleExists = await _userManager.IsInRoleAsync(user, role);
+        if (roleExists)
+            return BadRequest("User already has this role.");
+
+        var result = await _userManager.AddToRoleAsync(user, role);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        return Ok($"Role '{role}' added to user {user.Email}");
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound("User not found.");
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        return Ok($"User {user.Email} deleted.");
+    }
 }
