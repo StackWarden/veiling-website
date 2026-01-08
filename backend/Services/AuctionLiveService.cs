@@ -40,17 +40,29 @@ namespace backend.Services
             // Sorteer de items zodat Pending items eerst komen (die moeten geveild worden).
             var items = auction.AuctionItems
                 .Where(ai => ai.Status == AuctionItemStatus.Pending || ai.Status == AuctionItemStatus.Live)
-                .OrderBy(ai => ai.Status == AuctionItemStatus.Live ? 0 : 1) // Live eerst, dan Pending
+                .OrderBy(ai => ai.Status == AuctionItemStatus.Live ? 0 : 1)
                 .ThenBy(ai => ai.Id)
                 .ToList();
-
 
             if (items.Count == 0)
             {
                 throw new ArgumentException("Auction has no items.");
             }
 
-            // Haal of maak de live state voor deze veiling en initialiseer de eerste ronde.
+            // Zet alle andere veilingen die live zijn naar ended
+            var otherLiveAuctions = await _db.Auctions
+                .Where(a => a.Status == "Live" && a.Id != auctionId)
+                .ToListAsync();
+
+            foreach (var other in otherLiveAuctions)
+            {
+                other.Status = "Ended";
+            }
+
+            // Zet deze op Live
+            auction.Status = "Live";
+            await _db.SaveChangesAsync();
+
             var state = _live.GetOrCreate(auctionId);
             state.IsRunning = true;
             state.RoundIndex = 1;
@@ -256,6 +268,9 @@ namespace backend.Services
             {
                 // Geen volgend item meer: veiling is klaar.
                 state.IsRunning = false;
+
+                auction.Status = "Ended";
+                await _db.SaveChangesAsync();
             }
         }
 

@@ -1,6 +1,8 @@
 "use client";
-// Deprecated
+
 import useGet from "../api/get";
+import { useRouter } from "next/navigation";
+
 
 interface Auction {
   id: string;
@@ -12,6 +14,7 @@ interface Auction {
 
 export default function GetAuctions() {
   const { data, loading, error, execute } = useGet<Auction>({ route: "/auctions" });
+  const router = useRouter();
 
   return (
     <div className="space-y-4">
@@ -44,7 +47,11 @@ export default function GetAuctions() {
           <tbody>
             {!loading &&
               data.map((auction) => (
-                <tr className="border-b hover:bg-gray-50" key={auction.id}>
+                <tr
+                  key={auction.id}
+                  className="border-b hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/auctions/auction/${auction.id}`)}
+                >
                   <td className="p-2">{auction.status}</td>
                   <td className="p-2">{new Date(auction.startTime).toLocaleString()}</td>
                   <td className="p-2">{new Date(auction.endTime).toLocaleString()}</td>
