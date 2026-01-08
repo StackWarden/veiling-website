@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,7 +112,9 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-builder.Services.AddSingleton<backend.Services.IAuctionLiveRuntime, backend.Services.AuctionLiveRuntime>();
+builder.Services.AddSingleton<IAuctionLiveRuntime, AuctionLiveRuntime>();
+builder.Services.AddScoped<AuctionService>();
+builder.Services.AddScoped<AuctionLiveService>();
 
 var allowedOrigins = new[]
 {

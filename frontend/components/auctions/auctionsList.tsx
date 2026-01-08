@@ -29,6 +29,7 @@ export default function AuctionsDashboard() {
     route: "/auctions",
     autoFetch: false,
     onSuccess: (data) => {
+      console.log(data);
       const formatted = (Array.isArray(data) ? data : []).map(a => ({
         ...a,
         description: a.description || "-",

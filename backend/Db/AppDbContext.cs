@@ -56,7 +56,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .OnDelete(DeleteBehavior.Cascade);
         
         ModelBuilder.Entity<Bid>()
-            .HasOne<User>()               // AspNetUsers
+            .HasOne<User>()
             .WithMany()
             .HasForeignKey(b => b.BuyerId)
             .OnDelete(DeleteBehavior.Restrict);

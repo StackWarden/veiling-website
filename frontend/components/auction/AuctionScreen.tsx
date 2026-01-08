@@ -197,9 +197,6 @@ export default function AuctionScreen({ auctionId }: Props) {
   }, [live]);
 
   const showNext = Boolean(live?.nextAuctionItemId);
-  // NOTE: your current /live response does not include details about the next item.
-  // For now we can show a placeholder card or hide it until you extend the backend.
-  // Here: show a placeholder.
   const nextPlaceholder = {
     title: "Next item",
     imageUrl:
@@ -208,6 +205,22 @@ export default function AuctionScreen({ auctionId }: Props) {
     minimumPrice: "—",
     quantity: "—",
   };
+
+  if (!isLoading && !error && !productCard) {
+    return (
+      <section className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4 text-center space-y-6">
+        <div className="text-xl font-semibold text-neutral-800">
+          This auction hasn't started yet, or there are no items to display.
+        </div>
+        <a
+          href="/auctions"
+          className="inline-block rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-800 transition"
+        >
+          Back to Auctions
+        </a>
+      </section>
+    );
+  }
 
   return (
     <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -225,48 +238,47 @@ export default function AuctionScreen({ auctionId }: Props) {
         )}
 
         {!isLoading && !error && productCard && (
-          <ProductOverviewCard title={productCard.title} imageUrl={productCard.imageUrl} extraInfo={productCard.extraInfo} />
-        )}
-
-        {!isLoading && !error && !productCard && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            Auction not started or no current item.
-          </div>
+          <ProductOverviewCard
+            title={productCard.title}
+            imageUrl={productCard.imageUrl}
+            extraInfo={productCard.extraInfo}
+          />
         )}
       </div>
 
-      <div className="lg:col-span-4">
-        <div className="space-y-6">
-          <BidPanel
-            roundLabel={roundLabel}
-            startingOffer={live?.startingPrice ?? 0}
-            currentPrice={Number.isFinite(displayPrice) ? displayPrice : live?.currentPrice ?? 0}
-            currency={"€"}
-            onPlaceBid={(qty) => {
-              placeBid(qty)
-                .then(() => console.log("Bid OK"))
-                .catch((e) => {
-                  console.error("Bid failed:", e);
-                });
-            }}
-          />
-
-          {showNext ? (
-            <NextProductCard
-              title={nextPlaceholder.title}
-              imageUrl={nextPlaceholder.imageUrl}
-              species={nextPlaceholder.species}
-              minimumPrice={nextPlaceholder.minimumPrice}
-              quantity={nextPlaceholder.quantity}
-              onNext={() => {
-                // This should only be enabled for auctioneer later.
-                // Right now, you can wire it to POST /auctions/{id}/live/advance if you want.
-                console.log("Next product:", live?.nextAuctionItemId);
+      {productCard && (
+        <div className="lg:col-span-4">
+          <div className="space-y-6">
+            <BidPanel
+              roundLabel={roundLabel}
+              startingOffer={live?.startingPrice ?? 0}
+              currentPrice={Number.isFinite(displayPrice) ? displayPrice : live?.currentPrice ?? 0}
+              currency={"€"}
+              onPlaceBid={(qty) => {
+                placeBid(qty)
+                  .then(() => console.log("Bid OK"))
+                  .catch((e) => {
+                    console.error("Bid failed:", e);
+                  });
               }}
             />
-          ) : null}
+
+            {showNext ? (
+              <NextProductCard
+                title={nextPlaceholder.title}
+                imageUrl={nextPlaceholder.imageUrl}
+                species={nextPlaceholder.species}
+                minimumPrice={nextPlaceholder.minimumPrice}
+                quantity={nextPlaceholder.quantity}
+                onNext={() => {
+                  console.log("Next product:", live?.nextAuctionItemId);
+                }}
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
+
 }
