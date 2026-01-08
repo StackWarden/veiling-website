@@ -32,6 +32,8 @@ export default function ProductEdit() {
     quantity: "",
     minPrice: "",
   });
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   type FormKey = keyof typeof form;
 
@@ -59,6 +61,41 @@ export default function ProductEdit() {
 
   /* ---------- Save ---------- */
   const saveChanges = async () => {
+    let photoUrl: string | null = product?.photoUrl ?? null;
+
+    // Upload new image to Vercel Blob if a photo is selected
+    // If upload fails (no token cause we broke ahh students)), keep existing image or continue without
+    if (photo) {
+      try {
+        setUploading(true);
+        const timestamp = Date.now();
+        const filename = `products/${timestamp}-${photo.name}`;
+        
+        const response = await fetch(
+          `/api/upload?filename=${encodeURIComponent(filename)}`,
+          {
+            method: 'POST',
+            body: photo,
+          }
+        );
+
+        if (response.ok) {
+          const blob = await response.json();
+          photoUrl = blob.url;
+        } else {
+          // If upload fails (no token cause we broke ahh students)), keep existing image
+          console.warn('Image upload failed, keeping existing image');
+          // photoUrl already set to product?.photoUrl ?? null above
+        }
+      } catch (err) {
+        // If upload fails, keep existing image
+        console.warn('Image upload failed, keeping existing image:', err);
+        // photoUrl already set to product?.photoUrl ?? null above
+      } finally {
+        setUploading(false);
+      }
+    }
+
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, {
       method: "PUT",
       credentials: "include",
@@ -68,7 +105,7 @@ export default function ProductEdit() {
         stemLength: Number(form.stemLength),
         quantity: Number(form.quantity),
         minPrice: Number(form.minPrice),
-        photoUrl: product?.photoUrl ?? null,
+        photoUrl,
       }),
     });
 
@@ -89,7 +126,7 @@ export default function ProductEdit() {
 
       <div className="flex gap-16">
         {/* PHOTO */}
-        <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9] w-[350px] h-[350px]">
+        <div className="rounded-xl overflow-hidden shadow-sm border border-[#D9D9D9] w-[350px] h-[350px] flex flex-col">
           {product.photoUrl ? (
             <Image
               src={product.photoUrl}
@@ -103,6 +140,19 @@ export default function ProductEdit() {
               No Photo
             </div>
           )}
+          <div className="p-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+              className="w-full text-sm"
+            />
+            {photo && (
+              <p className="text-xs text-gray-600 mt-1">
+                New image: {photo.name}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* INFO */}
@@ -147,9 +197,10 @@ export default function ProductEdit() {
 
           <button
             onClick={saveChanges}
-            className="mt-8 w-full bg-[#162218] text-white py-3 rounded-lg hover:bg-[#0f1c14] transition"
+            disabled={uploading}
+            className="mt-8 w-full bg-[#162218] text-white py-3 rounded-lg hover:bg-[#0f1c14] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save changes
+            {uploading ? 'Uploading image...' : 'Save changes'}
           </button>
         </div>
       </div>

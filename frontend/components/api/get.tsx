@@ -78,6 +78,16 @@ export default function useGet<TData = unknown>({
   const [error, setError] = useState("");
   const hasFetchedRef = useRef(false);
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const transformRef = useRef(transform);
+  
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    transformRef.current = transform;
+  }, [onSuccess, onError, transform]);
+
   /**
    * Voert de GET-aanvraag uit.
    */
@@ -96,20 +106,20 @@ export default function useGet<TData = unknown>({
       }
 
       const payload = await response.json();
-      const parsed = transform ? transform(payload) : (payload as TData[]);
+      const parsed = transformRef.current ? transformRef.current(payload) : (payload as TData[]);
 
       setData(parsed);
 
-      if (onSuccess) onSuccess(parsed);
+      if (onSuccessRef.current) onSuccessRef.current(parsed);
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error("Onbekende fout");
       setError(errorObj.message);
 
-      if (onError) onError(errorObj);
+      if (onErrorRef.current) onErrorRef.current(errorObj);
     } finally {
       setLoading(false);
     }
-  }, [route, params, transform, onSuccess, onError]);
+  }, [route, params]);
 
   /**
    * Automatisch uitvoeren bij mount of wanneer afhankelijkheden wijzigen.

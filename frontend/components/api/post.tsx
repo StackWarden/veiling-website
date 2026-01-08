@@ -59,7 +59,32 @@ export function usePost<TBody extends object, TResult = unknown>({
         );
 
         if (!response.ok) {
-          throw new Error(`POST mislukt: ${response.statusText}`);
+          let errorMessage = `POST mislukt: ${response.statusText}`;
+          try {
+            const errorData = await response.json() as 
+              | { message?: string; errors?: Array<{ description?: string; code?: string }> }
+              | string
+              | Array<{ description?: string; code?: string }>;
+            
+            if (typeof errorData === 'object' && errorData !== null && !Array.isArray(errorData)) {
+              if (errorData.message) {
+                errorMessage = errorData.message;
+              } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                const errorMessages = errorData.errors.map((err) => 
+                  err.description || err.code || JSON.stringify(err)
+                ).join(', ');
+                errorMessage = errorMessages || errorMessage;
+              }
+            } else if (typeof errorData === 'string') {
+              errorMessage = errorData;
+            } else if (Array.isArray(errorData)) {
+              errorMessage = errorData.map((err) => 
+                err.description || err.code || JSON.stringify(err)
+              ).join(', ');
+            }
+          } catch {
+          }
+          throw new Error(errorMessage);
         }
 
         const data = (await response.json()) as TResult;
