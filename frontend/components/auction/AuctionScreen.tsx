@@ -132,8 +132,8 @@ export default function AuctionScreen({ auctionId }: Props) {
 
       const raw = live.startingPrice - elapsedSeconds * live.decrementPerSecond;
       const computed = Math.max(live.minPrice, raw);
-
-      setDisplayPrice(computed);
+      const formattedNum = Number(computed.toFixed(2));
+      setDisplayPrice(formattedNum);
       rafRef.current = requestAnimationFrame(tick);
     }
 
