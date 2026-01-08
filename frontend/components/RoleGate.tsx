@@ -11,7 +11,6 @@ export function RoleGate({ allow, fallback = null, children }: RoleGateProps) {
 
   // if role admin see everything voodoo type shit
   if (role === "admin") return <>{children}</>;
-  
   if (status === "loading") return null;
   if (!role || !allow.includes(role)) return fallback;
 

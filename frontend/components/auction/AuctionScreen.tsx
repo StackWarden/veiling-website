@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RoleGate } from "@/components/RoleGate";
 
 import ProductOverviewCard from "@/components/auction/ProductOverviewCard";
 import BidPanel from "@/components/auction/BidPanel";
@@ -203,77 +204,148 @@ export default function AuctionScreen({ auctionId }: Props) {
 
   if (!isLoading && !error && !productCard) {
     return (
-      <section className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4 text-center space-y-6">
-        <div className="text-xl font-semibold text-neutral-800">
-          This auction has not, started yet, or there are no items to display.
-        </div>
-        <a
-          href="/auctions"
-          className="inline-block rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-800 transition"
-        >
-          Back to Auctions
-        </a>
-      </section>
+      <>
+        <section className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4 text-center space-y-6">
+          <div className="text-xl font-semibold text-neutral-800">
+            This auction has not, started yet, or there are no items to display.
+          </div>
+          <a
+            href="/auctions"
+            className="inline-block rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-800 transition"
+          >
+            Back to Auctions
+          </a>
+        </section>
+        <RoleGate allow={["auctioneer"]}>
+          {/* Auctioneer Dashboard */}
+          <div className="w-full mt-10">
+            <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
+              <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
+                      method: "POST",
+                      credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                    });
+
+                    if (!res.ok) {
+                      const text = await res.text().catch(() => "");
+                      throw new Error(text || `Failed to start auction (${res.status})`);
+                    }
+
+                    console.log("Auction started!");
+                    const data = await res.json();
+                    setLive(data);
+                  } catch (error) {
+                    console.error("Error starting auction:", error);
+                    alert("Failed to start auction.");
+                  }
+                }}
+                className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"
+              >
+                Start Auction
+              </button>
+            </div>
+          </div>
+        </RoleGate> 
+      </>
     );
   }
 
   return (
-    <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-8">
-        {isLoading && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            Loading live auction...
-          </div>
-        )}
+    <>
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          {isLoading && (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              Loading live auction...
+            </div>
+          )}
 
-        {!isLoading && error && (
-          <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 shadow-sm">
-            {error}
-          </div>
-        )}
+          {!isLoading && error && (
+            <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 shadow-sm">
+              {error}
+            </div>
+          )}
 
-        {!isLoading && !error && productCard && (
-          <ProductOverviewCard
-            title={productCard.title}
-            imageUrl={productCard.imageUrl}
-            extraInfo={productCard.extraInfo}
-          />
-        )}
-      </div>
-
-      {productCard && (
-        <div className="lg:col-span-4">
-          <div className="space-y-6">
-            <BidPanel
-              roundLabel={roundLabel}
-              startingOffer={live?.startingPrice ?? 0}
-              currentPrice={Number.isFinite(displayPrice) ? displayPrice : live?.currentPrice ?? 0}
-              currency={"€"}
-              onPlaceBid={(qty) => {
-                placeBid(qty)
-                  .then(() => console.log("Bid OK"))
-                  .catch((e) => {
-                    console.error("Bid failed:", e);
-                  });
-              }}
+          {!isLoading && !error && productCard && (
+            <ProductOverviewCard
+              title={productCard.title}
+              imageUrl={productCard.imageUrl}
+              extraInfo={productCard.extraInfo}
             />
+          )}
+        </div>
 
-            {showNext ? (
-              <NextProductCard
-                title={nextPlaceholder.title}
-                imageUrl={nextPlaceholder.imageUrl}
-                species={nextPlaceholder.species}
-                minimumPrice={nextPlaceholder.minimumPrice}
-                quantity={nextPlaceholder.quantity}
-                onNext={() => {
-                  console.log("Next product:", live?.nextAuctionItemId);
+        {productCard && (
+          <div className="lg:col-span-4">
+            <div className="space-y-6">
+              <BidPanel
+                roundLabel={roundLabel}
+                startingOffer={live?.startingPrice ?? 0}
+                currentPrice={Number.isFinite(displayPrice) ? displayPrice : live?.currentPrice ?? 0}
+                currency={"€"}
+                onPlaceBid={(qty) => {
+                  placeBid(qty)
+                    .then(() => console.log("Bid OK"))
+                    .catch((e) => {
+                      console.error("Bid failed:", e);
+                    });
                 }}
               />
-            ) : null}
+
+              {showNext ? (
+                <NextProductCard
+                  title={nextPlaceholder.title}
+                  imageUrl={nextPlaceholder.imageUrl}
+                  species={nextPlaceholder.species}
+                  minimumPrice={nextPlaceholder.minimumPrice}
+                  quantity={nextPlaceholder.quantity}
+                  onNext={() => {
+                    console.log("Next product:", live?.nextAuctionItemId);
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+        )}
+      </section>
+      <RoleGate allow={["auctioneer"]}>
+        {/* Auctioneer Dashboard */}
+        <div className="w-full mt-10">
+          <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                  });
+
+                  if (!res.ok) {
+                    const text = await res.text().catch(() => "");
+                    throw new Error(text || `Failed to start auction (${res.status})`);
+                  }
+
+                  console.log("Auction started!");
+                  const data = await res.json();
+                  setLive(data);
+                } catch (error) {
+                  console.error("Error starting auction:", error);
+                  alert("Failed to start auction.");
+                }
+              }}
+              className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"
+            >
+              Start Auction
+            </button>
           </div>
         </div>
-      )}
-    </section>
+      </RoleGate>
+    </>
   );
-
 }

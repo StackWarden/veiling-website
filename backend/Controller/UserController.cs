@@ -46,20 +46,24 @@ public class UserController : ControllerBase
 
     [HttpPost("{id}/roles")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> AddRoleToUser(Guid id, [FromBody] string role)
+    public async Task<IActionResult> SetUserRole(Guid id, [FromBody] string newRole)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());
         if (user == null) return NotFound("User not found.");
 
-        var roleExists = await _userManager.IsInRoleAsync(user, role);
-        if (roleExists)
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        if (currentRoles.Contains(newRole))
             return BadRequest("User already has this role.");
 
-        var result = await _userManager.AddToRoleAsync(user, role);
-        if (!result.Succeeded)
-            return BadRequest(result.Errors.Select(e => e.Description));
+        var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+        if (!removeResult.Succeeded)
+            return BadRequest(removeResult.Errors.Select(e => e.Description));
 
-        return Ok($"Role '{role}' added to user {user.Email}");
+        var addResult = await _userManager.AddToRoleAsync(user, newRole);
+        if (!addResult.Succeeded)
+            return BadRequest(addResult.Errors.Select(e => e.Description));
+
+        return Ok($"User {user.Email} now has the role '{newRole}' (previous roles removed).");
     }
 
     [HttpDelete("{id}")]
