@@ -60,34 +60,32 @@ export default function AuctionScreen({ auctionId }: Props) {
   const serverOffsetMsRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
-
-  async function fetchLive(): Promise<LiveAuctionState> {
-    const res = await fetch(`${baseUrl}/auctions/${auctionId}/live`, {
-      method: "GET",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `Failed to fetch live state (${res.status})`);
-    }
-
-    const data = (await res.json()) as LiveAuctionState;
-
-    // compute offset
-    if (data.serverTimeUtc) {
-      const serverMs = parseUtcMs(data.serverTimeUtc);
-      const clientMs = Date.now();
-      if (serverMs > 0) serverOffsetMsRef.current = serverMs - clientMs;
-    }
-
-    return data;
-  }
-
   // Initial load + polling
   useEffect(() => {
     let cancelled = false;
+    async function fetchLive(): Promise<LiveAuctionState> {
+      const res = await fetch(`${baseUrl}/auctions/${auctionId}/live`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to fetch live state (${res.status})`);
+      }
+
+      const data = (await res.json()) as LiveAuctionState;
+
+      // compute offset
+      if (data.serverTimeUtc) {
+        const serverMs = parseUtcMs(data.serverTimeUtc);
+        const clientMs = Date.now();
+        if (serverMs > 0) serverOffsetMsRef.current = serverMs - clientMs;
+      }
+
+      return data;
+    }
 
     async function loadOnce() {
       try {
@@ -210,7 +208,7 @@ export default function AuctionScreen({ auctionId }: Props) {
     return (
       <section className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4 text-center space-y-6">
         <div className="text-xl font-semibold text-neutral-800">
-          This auction hasn't started yet, or there are no items to display.
+          This auction has not, started yet, or there are no items to display.
         </div>
         <a
           href="/auctions"
