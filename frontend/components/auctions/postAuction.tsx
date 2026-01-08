@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePost } from "../api/post";
 import useGet from "@/components/api/get";
+import { useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { SupplierName } from "../utility/SupplierName";
@@ -47,10 +48,13 @@ export default function PostAuction() {
   });
 
   const [products, setProducts] = useState<Product[]>([]);
+
+  const handleProductsLoaded = useCallback((data: Product[]) => setProducts(data), []);
+
   const { loading: getLoading, execute: fetchProducts } = useGet<Product>({
     route: "/products",
     autoFetch: false,
-    onSuccess: (data) => setProducts(data),
+    onSuccess: handleProductsLoaded,
   });
 
   const [auction, setAuction] = useState<Auction>({
