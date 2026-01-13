@@ -43,6 +43,7 @@ export function middleware(req: NextRequest) {
     "/species": ["admin"],
     "/auctions/create": ["auctioneer"],
     "/auctions/delete": ["auctioneer"],
+    "/users": ["admin"],
   };
 
   // Check if path matches a protected prefix

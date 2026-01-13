@@ -22,7 +22,7 @@ export default function UsersList() {
 
   useEffect(() => {
     execute();
-  }, []);
+  }, [execute]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
