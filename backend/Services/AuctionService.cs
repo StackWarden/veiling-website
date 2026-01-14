@@ -174,5 +174,31 @@ namespace backend.Services
 
             return $"Auction {auction.Id} deleted successfully.";
         }
+        public AuctionDto SetAuctionTime(Guid id, SetAuctionTimeDto dto)
+        {
+            if (dto == null)
+            {
+                throw new ArgumentException("Request body is required.");
+            }
+
+            var auction = _db.Auctions.Find(id);
+            if (auction == null)
+            {
+                throw new KeyNotFoundException("Auction not found.");
+            }
+
+            auction.AuctionTime = dto.AuctionTime;
+            _db.SaveChanges();
+
+            return new AuctionDto
+            {
+                Id = auction.Id,
+                Description = auction.Description,
+                AuctionDate = auction.AuctionDate,
+                AuctionTime = auction.AuctionTime,
+                Status = auction.Status,
+                Items = new List<AuctionItemDto>()
+            };
+        }
     }
 }
