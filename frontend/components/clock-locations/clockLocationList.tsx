@@ -56,7 +56,7 @@ export default function ClockLocationList() {
     },
   });
 
-  const { loading: deleting, execute: deleteClockLocation } = useDelete({
+  const { loading: deleting, error: deleteError, execute: deleteClockLocation } = useDelete({
     baseRoute: "/clock-locations",
     onSuccess: () => {
       fetchClockLocations();
@@ -159,6 +159,12 @@ export default function ClockLocationList() {
                   <p className="text-red-600 text-sm font-medium">Error: {createError}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {deleteError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm font-medium">Error: {deleteError}</p>
             </div>
           )}
 
