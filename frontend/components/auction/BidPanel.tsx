@@ -2,12 +2,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import PriceHistoryPopup from "./PriceHistoryPopup";
 
 type Props = {
   roundLabel: string;
   startingOffer: number;
   currentPrice: number;
   currency?: string;
+  productId?: string | null;
   onPlaceBid: (quantity: number) => void;
 };
 
@@ -15,8 +17,9 @@ function formatMoney(currency: string, value: number) {
   return `${currency}${value}`;
 }
 
-export default function BidPanel({ roundLabel, startingOffer, currentPrice, currency = "€", onPlaceBid }: Props) {
+export default function BidPanel({ roundLabel, startingOffer, currentPrice, currency = "€", productId, onPlaceBid }: Props) {
   const [quantity, setQuantity] = useState<string>("");
+  const [showHistory, setShowHistory] = useState(false);
 
   const progress = useMemo(() => {
     if (startingOffer <= 0) return 0;
@@ -83,6 +86,24 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
       >
         Place your bid!
       </button>
+
+      <button
+        type="button"
+        onClick={() => setShowHistory(true)}
+        className="mt-3 w-full rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
+      >
+        View price history
+      </button>
+
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowHistory(false)} />
+          <div className="relative z-10 mx-4 w-full max-w-2xl">
+            {/* Lazy show PriceHistoryPopup content inside modal */}
+            <PriceHistoryPopup productId={productId} onClose={() => setShowHistory(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
