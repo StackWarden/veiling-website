@@ -66,6 +66,77 @@ public static class DatabaseSeeder
                     Console.WriteLine("Assuming database was created with EnsureCreated");
                 }
                 
+                try
+                {
+                    Console.WriteLine("Checking and fixing Auctions table schema...");
+                    
+                    try
+                    {
+                        await db.Database.ExecuteSqlRawAsync(@"
+                            IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Auctions' AND COLUMN_NAME = 'StartTime')
+                            BEGIN
+                                ALTER TABLE [Auctions] DROP COLUMN [StartTime];
+                            END
+                        ");
+                        Console.WriteLine("StartTime column checked/removed");
+                    }
+                    catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 4924 || sqlEx.Number == 2705)
+                    {
+                        // Column doesn't exist or already dropped - that's fine
+                        Console.WriteLine("StartTime column doesn't exist (already removed)");
+                    }
+                    
+                    // Drop old EndTime column if it exists
+                    try
+                    {
+                        await db.Database.ExecuteSqlRawAsync(@"
+                            IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Auctions' AND COLUMN_NAME = 'EndTime')
+                            BEGIN
+                                ALTER TABLE [Auctions] DROP COLUMN [EndTime];
+                            END
+                        ");
+                        Console.WriteLine("EndTime column checked/removed");
+                    }
+                    catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 4924 || sqlEx.Number == 2705)
+                    {
+                        Console.WriteLine("EndTime column doesn't exist (already removed)");
+                    }
+                    
+                    try
+                    {
+                        await db.Database.ExecuteSqlRawAsync(@"
+                            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Auctions' AND COLUMN_NAME = 'AuctionDate')
+                            BEGIN
+                                ALTER TABLE [Auctions] ADD [AuctionDate] date NOT NULL DEFAULT '0001-01-01';
+                            END
+                        ");
+                        Console.WriteLine("AuctionDate column checked/added");
+                    }
+                    catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2705 || sqlEx.Number == 1913 || sqlEx.Number == 2714)
+                    {
+                        Console.WriteLine("AuctionDate column already exists");
+                    }
+                    
+                    try
+                    {
+                        await db.Database.ExecuteSqlRawAsync(@"
+                            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Auctions' AND COLUMN_NAME = 'AuctionTime')
+                            BEGIN
+                                ALTER TABLE [Auctions] ADD [AuctionTime] time NULL;
+                            END
+                        ");
+                        Console.WriteLine("AuctionTime column checked/added");
+                    }
+                    catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2705 || sqlEx.Number == 1913 || sqlEx.Number == 2714)
+                    {
+                        Console.WriteLine("AuctionTime column already exists");
+                    }
+                }
+                catch (Exception colFixEx)
+                {
+                    Console.WriteLine($"Warning: Could not fix Auction columns: {colFixEx.Message}");
+                }
+                
                 // If no migration history, manually create ClockLocations table if needed
                 if (!hasMigrationHistory)
                 {

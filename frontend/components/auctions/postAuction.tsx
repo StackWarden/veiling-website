@@ -161,17 +161,7 @@ export default function PostAuction() {
     }
 
     load();
-  useEffect(() => {
-    async function load() {
-      try {
-        await fetchProducts();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   }, []);
 
   const fields: Array<FormField<Auction>> = [
@@ -198,6 +188,34 @@ export default function PostAuction() {
       parseValue: (raw) => (raw && raw.trim().length > 0 ? raw : null),
     },
     {
+      name: "clockLocationId",
+      label: "Clock Location (Optional)",
+      type: "custom",
+      colSpan: 2,
+      render: ({ value, setValue }) => {
+        return (
+          <div>
+            {clockLocationsLoading ? (
+              <p className="text-gray-500">Loading clock locations...</p>
+            ) : (
+              <select
+                value={value || ""}
+                onChange={(e) => setValue("clockLocationId", e.target.value || null)}
+                className="mt-1 w-full border rounded-lg p-2"
+              >
+                <option value="">None</option>
+                {clockLocations.map((cl) => (
+                  <option key={cl.id} value={cl.id}>
+                    {cl.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       name: "productIds",
       label: "Select Products",
       type: "custom",
@@ -217,95 +235,6 @@ export default function PostAuction() {
         const selectAll = () => setValue("productIds", products.map((p) => p.id));
         const deselectAll = () => setValue("productIds", []);
 
-  return (
-    <div className="flex justify-center items-start px-6 pt-8">
-      <form onSubmit={handleSubmit} className="w-full max-w-4xl space-y-8">
-        <h1 className="text-3xl font-bold text-center">Create Auction</h1>
-
-        {/* Description */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Auction Description</label>
-          <textarea
-            value={auction.description}
-            onChange={(e) =>
-              handleChange("description", e.target.value)
-            }
-            className="mt-1 w-full border rounded-lg p-3 min-h-[100px]"
-          />
-        </div>
-
-        {/* Times */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="flex flex-col">
-            <label className="font-semibold">Start Time</label>
-            <input
-              type="datetime-local"
-              value={auction.startTime.slice(0, 16)}
-              onChange={(e) =>
-                handleChange("startTime", e.target.value)
-              }
-              className="mt-1 w-full border rounded-lg p-2"
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label className="font-semibold">End Time</label>
-            <input
-              type="datetime-local"
-              value={auction.endTime.slice(0, 16)}
-              onChange={(e) =>
-                handleChange("endTime", e.target.value)
-              }
-              className="mt-1 w-full border rounded-lg p-2"
-            />
-          </div>
-        </div>
-
-        {/* Clock Location */}
-        <div className="flex flex-col">
-          <label className="font-semibold">Clock Location (Optional)</label>
-          {clockLocationsLoading ? (
-            <p className="text-gray-500 mt-1">Loading clock locations...</p>
-          ) : (
-            <select
-              value={auction.clockLocationId || ""}
-              onChange={(e) =>
-                handleChange("clockLocationId", e.target.value || null)
-              }
-              className="mt-1 w-full border rounded-lg p-2"
-            >
-              <option value="">None</option>
-              {clockLocations.map((cl) => (
-                <option key={cl.id} value={cl.id}>
-                  {cl.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-
-        {/* Products */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Select Products</h2>
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={selectAll}
-                className="text-sm underline"
-              >
-                Select all
-              </button>
-              <button
-                type="button"
-                onClick={deselectAll}
-                className="text-sm underline"
-              >
-                Deselect all
-              </button>
-            </div>
-          </div>
         return (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
