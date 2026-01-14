@@ -8,5 +8,7 @@ public class Auction
     public DateOnly AuctionDate { get; set; }
     public TimeOnly? AuctionTime { get; set; }
     public string Status { get; set; } = "Scheduled";
+    public Guid? ClockLocationId { get; set; }
+    public ClockLocation? ClockLocation { get; set; }
     public ICollection<AuctionItem> AuctionItems { get; set; } = new List<AuctionItem>();
 }

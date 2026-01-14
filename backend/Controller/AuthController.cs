@@ -55,6 +55,9 @@ public class AuthController : ControllerBase
     [HttpPost("jwt")]
     public async Task<IActionResult> LoginJWT([FromBody] LoginDto dto)
     {
+        // #region agent log
+        try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "AuthController.cs:LoginJWT", message = "LoginJWT endpoint called", data = new { method = Request.Method, path = Request.Path, origin = Request.Headers["Origin"].ToString(), hasOrigin = Request.Headers.ContainsKey("Origin") }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
+        // #endregion
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null) {
             return Unauthorized("Invalid email or password.");
@@ -68,8 +71,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("jwt", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
+            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
             Expires = DateTimeOffset.UtcNow.AddMinutes(30),
             Path = "/"
         });
@@ -89,8 +92,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("jwt", string.Empty, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
+            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
             Path = "/"
         });
@@ -118,6 +121,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
+            id = user.Id.ToString(),
             name = user.Name,
             role = role
         });
