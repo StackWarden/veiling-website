@@ -23,16 +23,17 @@ namespace backend.Services
         public List<AuctionDto> GetAllAuctions()
         {
             var auctions = _db.Auctions.ToList();
-            // Map de Auction entiteiten naar AuctionDto's (zodat we niet per ongeluk te veel info lekken).
-            var result = auctions.Select(a => new AuctionDto 
+
+            var result = auctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
                 Description = a.Description,
-                StartTime = a.StartTime,
-                EndTime = a.EndTime,
+                AuctionDate = a.AuctionDate,
+                AuctionTime = a.AuctionTime,
                 Status = a.Status,
-                Items = new List<AuctionItemDto>() // Items laten we leeg hier om het simpel te houden
+                Items = new List<AuctionItemDto>()
             }).ToList();
+
             return result;
         }
 
@@ -42,13 +43,13 @@ namespace backend.Services
         {
             var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);
             if (auction == null) return null;
-            // Geen items opgehaald voor eenvoud. Als je items nodig hebt, kun je hier een include toevoegen.
+
             return new AuctionDto
             {
                 Id = auction.Id,
                 Description = auction.Description,
-                StartTime = auction.StartTime,
-                EndTime = auction.EndTime,
+                AuctionDate = auction.AuctionDate,
+                AuctionTime = auction.AuctionTime,
                 Status = auction.Status,
                 Items = new List<AuctionItemDto>()
             };
@@ -64,34 +65,31 @@ namespace backend.Services
             {
                 throw new ArgumentException("Request body is required.");
             }
-            if (dto.EndTime <= dto.StartTime)
+
+            if (dto.AuctionDate < DateOnly.FromDateTime(DateTime.UtcNow))
             {
-                throw new ArgumentException("End time must be after start time.");
+                throw new ArgumentException("Auction date cannot be in the past.");
             }
 
-            // Lege lijst als er geen items zijn (je kunt een veiling zonder items maken, maar of dat zinvol is...).
             var productIds = dto.ProductIds ?? new List<Guid>();
 
-            // Maak de Auction entity aan
             var auction = new Auction
             {
                 Id = Guid.NewGuid(),
                 AuctionneerId = dto.AuctionneerId,
                 Description = dto.Description,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime,
+                AuctionDate = dto.AuctionDate,
+                AuctionTime = dto.AuctionTime,
                 Status = dto.Status
             };
 
             _db.Auctions.Add(auction);
-            _db.SaveChanges(); // Sla op om het Auction object een ID te geven in de database
+            _db.SaveChanges();
 
-            // Maak AuctionItem entries voor elk productId
             foreach (var productId in productIds)
             {
                 if (!_db.Products.Any(p => p.Id == productId))
                 {
-                    // Oeps, een product bestaat niet
                     throw new ArgumentException($"Product {productId} does not exist.");
                 }
 
@@ -102,12 +100,12 @@ namespace backend.Services
                     ProductId = productId,
                     Status = AuctionItemStatus.Pending
                 };
+
                 _db.AuctionItems.Add(auctionItem);
             }
 
             _db.SaveChanges();
 
-            // Stel het resultaat samen met de veilinggegevens en de lijst van items
             var items = _db.AuctionItems
                 .Where(ai => ai.AuctionId == auction.Id)
                 .Select(ai => new AuctionItemDto
@@ -122,8 +120,9 @@ namespace backend.Services
             {
                 Id = auction.Id,
                 Description = auction.Description,
-                StartTime = auction.StartTime,
-                EndTime = auction.EndTime,
+                AuctionDate = auction.AuctionDate,
+                AuctionTime = auction.AuctionTime,
+                Status = auction.Status,
                 Items = items
             };
         }
@@ -138,15 +137,22 @@ namespace backend.Services
             {
                 throw new KeyNotFoundException("Auction not found.");
             }
-            if (dto.EndTime <= dto.StartTime)
+
+            if (dto == null)
             {
-                throw new ArgumentException("End time must be after start time.");
+                throw new ArgumentException("Request body is required.");
             }
 
-            auction.StartTime = dto.StartTime;
-            auction.EndTime = dto.EndTime;
+            if (dto.AuctionDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            {
+                throw new ArgumentException("Auction date cannot be in the past.");
+            }
+
+            auction.AuctionDate = dto.AuctionDate;
+            auction.AuctionTime = dto.AuctionTime;
             auction.Status = dto.Status;
             auction.AuctionneerId = dto.AuctionneerId;
+            auction.Description = dto.Description;
 
             _db.SaveChanges();
 
