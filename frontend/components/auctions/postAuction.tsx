@@ -183,10 +183,14 @@ export default function PostAuction() {
             <label className="font-semibold">Start Time</label>
             <input
               type="datetime-local"
-              value={auction.startTime.slice(0, 16)}
-              onChange={(e) =>
-                handleChange("startTime", e.target.value)
-              }
+              value={auction.startTime ? new Date(auction.startTime).toISOString().slice(0, 16) : ""}
+              onChange={(e) => {
+                const localDateTime = e.target.value;
+                if (localDateTime) {
+                  const date = new Date(localDateTime);
+                  handleChange("startTime", date.toISOString());
+                }
+              }}
               className="mt-1 w-full border rounded-lg p-2"
             />
           </div>
@@ -195,10 +199,15 @@ export default function PostAuction() {
             <label className="font-semibold">End Time</label>
             <input
               type="datetime-local"
-              value={auction.endTime.slice(0, 16)}
-              onChange={(e) =>
-                handleChange("endTime", e.target.value)
-              }
+              value={auction.endTime ? new Date(auction.endTime).toISOString().slice(0, 16) : ""}
+              onChange={(e) => {
+                // Convert datetime-local value to ISO string
+                const localDateTime = e.target.value;
+                if (localDateTime) {
+                  const date = new Date(localDateTime);
+                  handleChange("endTime", date.toISOString());
+                }
+              }}
               className="mt-1 w-full border rounded-lg p-2"
             />
           </div>

@@ -26,8 +26,8 @@ namespace backend.Services
             var auctions = _db.Auctions
                 .Include(a => a.ClockLocation)
                 .ToList();
-            // Map de Auction entiteiten naar AuctionDto's (zodat we niet per ongeluk te veel info lekken).
-            var result = auctions.Select(a => new AuctionDto 
+
+            var result = auctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
                 Description = a.Description,
@@ -36,8 +36,9 @@ namespace backend.Services
                 Status = a.Status,
                 ClockLocationId = a.ClockLocationId,
                 ClockLocationName = a.ClockLocation?.Name,
-                Items = new List<AuctionItemDto>() // Items laten we leeg hier om het simpel te houden
+                Items = new List<AuctionItemDto>()
             }).ToList();
+
             return result;
         }
 
@@ -90,7 +91,6 @@ namespace backend.Services
                 }
             }
 
-            // Maak de Auction entity aan
             var auction = new Auction
             {
                 Id = Guid.NewGuid(),
@@ -131,7 +131,6 @@ namespace backend.Services
                 .Include(a => a.ClockLocation)
                 .FirstOrDefault(a => a.Id == auction.Id);
 
-            // Stel het resultaat samen met de veilinggegevens en de lijst van items
             var items = _db.AuctionItems
                 .Where(ai => ai.AuctionId == auction.Id)
                 .Select(ai => new AuctionItemDto
@@ -183,6 +182,7 @@ namespace backend.Services
             auction.EndTime = dto.EndTime;
             auction.Status = dto.Status;
             auction.AuctionneerId = dto.AuctionneerId;
+            auction.Description = dto.Description;
             auction.ClockLocationId = dto.ClockLocationId;
 
             _db.SaveChanges();
