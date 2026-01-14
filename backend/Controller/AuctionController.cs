@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Collections.Generic;
 using backend.Services;
 using backend.Dtos;
 
@@ -197,25 +198,6 @@ namespace backend.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpPatch("{id:guid}/time")]
-        [Authorize(Roles = "auctioneer,admin")]
-        public IActionResult SetAuctionTime(Guid id, [FromBody] SetAuctionTimeDto dto)
-        {
-            try
-            {
-                var updated = _auctionService.SetAuctionTime(id, dto);
-                return Ok(updated);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
             }
         }
     }
