@@ -109,10 +109,6 @@ return (
             </div>
             {/* opties onder de velden */}
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="accent-green-600" />
-                <span>Keep me logged in</span>
-              </label>
               <p>
                 No account?{" "}
                 <a
