@@ -118,6 +118,19 @@ export default function Header() {
                             </a>
                         </RoleGate>
 
+                        <RoleGate allow={["admin"]}>
+                            <a
+                                href="/clock-locations"
+                                className={
+                                    isActive("/clock-locations")
+                                        ? "underline underline-offset-4"
+                                        : "hover:text-gray-600 transition"
+                                }
+                            >
+                                CL
+                            </a>
+                        </RoleGate>
+
                         {/* User info */}
                         <div className="flex p-2.5 justify-center items-center gap-2.5 rounded-lg bg-[#162218] text-white">
                             <span className="font-semibold">
