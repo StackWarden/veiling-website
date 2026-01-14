@@ -1,6 +1,7 @@
 using backend.Db;
 using backend.Db.Entities;
 using backend.Dtos;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace backend.Services
@@ -22,8 +23,10 @@ namespace backend.Services
         // Haalt alle veilingen op uit de database (simpele zaak, geen poespas).
         public List<AuctionDto> GetAllAuctions()
         {
-            var auctions = _db.Auctions.ToList();
-
+            // Map de Auction entiteiten naar AuctionDto's (zodat we niet per ongeluk te veel info lekken).
+            var auctions = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .ToList();
             var result = auctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
@@ -31,6 +34,8 @@ namespace backend.Services
                 AuctionDate = a.AuctionDate,
                 AuctionTime = a.AuctionTime,
                 Status = a.Status,
+                ClockLocationId = a.ClockLocationId,
+                ClockLocationName = a.ClockLocation?.Name,
                 Items = new List<AuctionItemDto>()
             }).ToList();
 
@@ -41,7 +46,9 @@ namespace backend.Services
         // Retourneert null als deze niet bestaat (de controller maakt er dan een NotFound van).
         public AuctionDto? GetAuctionById(Guid id)
         {
-            var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);
+            var auction = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .FirstOrDefault(a => a.Id == id);
             if (auction == null) return null;
 
             return new AuctionDto
@@ -51,6 +58,8 @@ namespace backend.Services
                 AuctionDate = auction.AuctionDate,
                 AuctionTime = auction.AuctionTime,
                 Status = auction.Status,
+                ClockLocationId = auction.ClockLocationId,
+                ClockLocationName = auction.ClockLocation?.Name,
                 Items = new List<AuctionItemDto>()
             };
         }
@@ -73,6 +82,15 @@ namespace backend.Services
 
             var productIds = dto.ProductIds ?? new List<Guid>();
 
+            // Validate clock location if provided
+            if (dto.ClockLocationId.HasValue)
+            {
+                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                {
+                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                }
+            }
+
             var auction = new Auction
             {
                 Id = Guid.NewGuid(),
@@ -80,7 +98,8 @@ namespace backend.Services
                 Description = dto.Description,
                 AuctionDate = dto.AuctionDate,
                 AuctionTime = dto.AuctionTime,
-                Status = dto.Status
+                Status = dto.Status,
+                ClockLocationId = dto.ClockLocationId
             };
 
             _db.Auctions.Add(auction);
@@ -106,6 +125,11 @@ namespace backend.Services
 
             _db.SaveChanges();
 
+            // Reload auction with clock location
+            var createdAuction = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .FirstOrDefault(a => a.Id == auction.Id);
+
             var items = _db.AuctionItems
                 .Where(ai => ai.AuctionId == auction.Id)
                 .Select(ai => new AuctionItemDto
@@ -120,9 +144,11 @@ namespace backend.Services
             {
                 Id = auction.Id,
                 Description = auction.Description,
+                Status = auction.Status,
+                ClockLocationId = createdAuction?.ClockLocationId,
+                ClockLocationName = createdAuction?.ClockLocation?.Name,
                 AuctionDate = auction.AuctionDate,
                 AuctionTime = auction.AuctionTime,
-                Status = auction.Status,
                 Items = items
             };
         }
@@ -148,11 +174,21 @@ namespace backend.Services
                 throw new ArgumentException("Auction date cannot be in the past.");
             }
 
+            // Validate clock location if provided
+            if (dto.ClockLocationId.HasValue)
+            {
+                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                {
+                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                }
+            }
+
             auction.AuctionDate = dto.AuctionDate;
             auction.AuctionTime = dto.AuctionTime;
             auction.Status = dto.Status;
             auction.AuctionneerId = dto.AuctionneerId;
             auction.Description = dto.Description;
+            auction.ClockLocationId = dto.ClockLocationId;
 
             _db.SaveChanges();
 

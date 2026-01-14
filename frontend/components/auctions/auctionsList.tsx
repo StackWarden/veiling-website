@@ -4,19 +4,22 @@ import { useEffect, useState } from "react";
 import useDelete from "@/components/api/delete";
 import useGet from "@/components/api/get";
 import { RoleGate } from "@/components/RoleGate";
-import List from "@/components/list";
+import List, { ListHeader } from "@/components/list";
 import CreateButton from "@/components/createButton";
+import useAuth from "@/hooks/useAuth";
 
 type Auction = {
   id: string;
   description: string;
-  auctionDate: string; // "YYYY-MM-DD"
-  auctionTime: string | null; // "HH:mm" or null
+  auctionDate: string; // YYYY-MM-DD
+  auctionTime: string | null; // HH:mm or null
   status: string;
+  clockLocationName?: string | null;
 };
 
 export default function AuctionsDashboard() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
+  const { role } = useAuth();
 
   const { loading: deleting, execute: deleteAuction } = useDelete({
     baseRoute: "/auctions",
@@ -42,6 +45,7 @@ export default function AuctionsDashboard() {
           auctionDate: dateLabel,
           auctionTime: timeLabel,
           status: a.status || "-",
+          clock: a.clockLocationName || "-",
         };
       });
 
@@ -62,6 +66,20 @@ export default function AuctionsDashboard() {
   const handleSetTime = (id: string) => {
     window.location.href = `/auctions/auction/${id}/set-time`;
   };
+
+  // Build headers array conditionally
+  const headers: ListHeader[] = [
+    { key: "description", label: "Description", align: "start" },
+    { key: "auctionDate", label: "Auction Date", align: "center" },
+    { key: "auctionTime", label: "Time", align: "center" },
+    { key: "status", label: "Status", align: "center" },
+    { key: "clock", label: "Clock Location", align: "center" },
+  ];
+
+  // Conditionally add Actions header for auctioneers
+  if (role === "auctioneer" || role === "admin") {
+    headers.push({ key: "actions", label: "Actions", align: "end" });
+  }
 
   return (
     <section className="w-full flex flex-col items-center mt-12 px-4">
@@ -90,41 +108,40 @@ export default function AuctionsDashboard() {
 
         {!loading && !deleting && auctions.length > 0 && (
           <List
-            headers={[
-              { key: "description", label: "Description", align: "start" },
-              { key: "auctionDate", label: "Auction Date", align: "center" },
-              { key: "auctionTime", label: "Time", align: "center" },
-              { key: "status", label: "Status", align: "center" },
-              { key: "clock", label: "Clock Location", align: "center" },
-            ]}
-            rows={auctions.map((auction) => ({
-              ...auction,
-              actions: (
-                <RoleGate allow={["auctioneer"]}>
-                  <div className="flex items-center justify-end gap-4">
-                    <p
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetTime(auction.id);
-                      }}
-                      className="hover:cursor-pointer hover:underline underline-offset-2 hover:text-[#7fae8b]"
-                    >
-                      Set time
-                    </p>
+            headers={headers}
+            rows={auctions.map((auction) => {
+              const row: Record<string, unknown> = {
+                ...auction,
+              };
+              if (role === "auctioneer" || role === "admin") {
+                row.actions = (
+                  <RoleGate allow={["auctioneer", "admin"]}>
+                    <div className="flex items-center justify-end gap-4">
+                      <p
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetTime(auction.id);
+                        }}
+                        className="hover:cursor-pointer hover:underline underline-offset-2 hover:text-[#7fae8b]"
+                      >
+                        Set time
+                      </p>
 
-                    <p
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(auction.id);
-                      }}
-                      className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                    >
-                      Delete
-                    </p>
-                  </div>
-                </RoleGate>
-              ),
-            }))}
+                      <p
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(auction.id);
+                        }}
+                        className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                      >
+                        Delete
+                      </p>
+                    </div>
+                  </RoleGate>
+                );
+              }
+              return row;
+            })}
             onRowClick={(auction) => {
               window.location.href = `/auctions/auction/${auction.id}`;
             }}
