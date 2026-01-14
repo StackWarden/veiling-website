@@ -137,19 +137,12 @@ builder.Services.AddCors(options =>
         {
             // In development, allow any localhost origin for easier testing
             policy.SetIsOriginAllowed(origin =>
-            {
-                // #region agent log
-                try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "Program.cs:CORS-OriginCheck", message = "Checking origin", data = new { origin = origin ?? "null", allowedOrigins = allowedOrigins }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                // #endregion
-                
+            {                
                 if (string.IsNullOrEmpty(origin)) return false;
                 
                 // Check if it's in the explicitly allowed origins list
                 if (allowedOrigins.Contains(origin))
                 {
-                    // #region agent log
-                    try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "Program.cs:CORS-OriginCheck", message = "Origin allowed (in list)", data = new { origin }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
                     return true;
                 }
                 
@@ -158,18 +151,11 @@ builder.Services.AddCors(options =>
                     var uri = new Uri(origin);
                     var allowed = (uri.Scheme == "http" || uri.Scheme == "https") &&
                            (uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host == "::1");
-                    
-                    // #region agent log
-                    try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "Program.cs:CORS-OriginCheck", message = "Origin check result", data = new { origin, scheme = uri.Scheme, host = uri.Host, allowed }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
-                    
+
                     return allowed;
                 }
                 catch (Exception ex)
                 {
-                    // #region agent log
-                    try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "B", location = "Program.cs:CORS-OriginCheck", message = "Origin check exception", data = new { origin, error = ex.Message }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-                    // #endregion
                     return false;
                 }
             })
@@ -210,17 +196,11 @@ app.UseRouting();
 // CORS must be before Authentication/Authorization to handle preflight requests
 app.Use(async (context, next) =>
 {
-    // #region agent log
-    try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "Program.cs:CORS-Middleware", message = "Request received", data = new { method = context.Request.Method, path = context.Request.Path, origin = context.Request.Headers["Origin"].ToString(), hasOrigin = context.Request.Headers.ContainsKey("Origin") }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-    // #endregion
     await next();
 });
 app.UseCors("AllowNextJs");
 app.Use(async (context, next) =>
 {
-    // #region agent log
-    try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "A", location = "Program.cs:After-CORS", message = "After CORS middleware", data = new { method = context.Request.Method, path = context.Request.Path, corsHeaders = context.Response.Headers.ContainsKey("Access-Control-Allow-Origin") }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-    // #endregion
     await next();
 });
 

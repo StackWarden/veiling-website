@@ -55,9 +55,6 @@ public class AuthController : ControllerBase
     [HttpPost("jwt")]
     public async Task<IActionResult> LoginJWT([FromBody] LoginDto dto)
     {
-        // #region agent log
-        try { var logPath = "/app/debug.log"; System.IO.File.AppendAllText(logPath, System.Text.Json.JsonSerializer.Serialize(new { sessionId = "debug-session", runId = "run1", hypothesisId = "D", location = "AuthController.cs:LoginJWT", message = "LoginJWT endpoint called", data = new { method = Request.Method, path = Request.Path, origin = Request.Headers["Origin"].ToString(), hasOrigin = Request.Headers.ContainsKey("Origin") }, timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }) + "\n"); } catch { }
-        // #endregion
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null) {
             return Unauthorized("Invalid email or password.");
