@@ -17,7 +17,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Bid> Bids { get; set; }
     public DbSet<AuctionItem> AuctionItems { get; set; }
     public DbSet<Species> Species => Set<Species>();
-    public DbSet<ClockLocation> ClockLocations => Set<ClockLocation>();
 
     protected override void OnModelCreating(ModelBuilder ModelBuilder)
     {
@@ -61,11 +60,5 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany()
             .HasForeignKey(b => b.BuyerId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        ModelBuilder.Entity<Auction>()
-            .HasOne(a => a.ClockLocation)
-            .WithMany()
-            .HasForeignKey(a => a.ClockLocationId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

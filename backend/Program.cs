@@ -116,61 +116,19 @@ builder.Services.AddSingleton<IAuctionLiveRuntime, AuctionLiveRuntime>();
 builder.Services.AddScoped<AuctionService>();
 builder.Services.AddScoped<AuctionLiveService>();
 
-// Get allowed origins from environment or use defaults
-var allowedOriginsEnv = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
-var allowedOrigins = allowedOriginsEnv?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-    ?? new[]
-    {
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002",
-    };
+var allowedOrigins = new[]
+{
+    "http://localhost:3000",
+};
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowNextJs", policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            // In development, allow any localhost origin for easier testing
-            policy.SetIsOriginAllowed(origin =>
-            {                
-                if (string.IsNullOrEmpty(origin)) return false;
-                
-                // Check if it's in the explicitly allowed origins list
-                if (allowedOrigins.Contains(origin))
-                {
-                    return true;
-                }
-                
-                try
-                {
-                    var uri = new Uri(origin);
-                    var allowed = (uri.Scheme == "http" || uri.Scheme == "https") &&
-                           (uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host == "::1");
-
-                    return allowed;
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
-            })
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-        }
-        else
-        {
-            // In production, use specific origins only
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        }
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -193,16 +151,7 @@ else
 
 app.UseRouting();
 
-// CORS must be before Authentication/Authorization to handle preflight requests
-app.Use(async (context, next) =>
-{
-    await next();
-});
 app.UseCors("AllowNextJs");
-app.Use(async (context, next) =>
-{
-    await next();
-});
 
 app.UseAuthentication();
 app.UseAuthorization();
