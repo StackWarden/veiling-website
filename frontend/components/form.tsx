@@ -12,7 +12,7 @@ export type FormFieldType =
   | "time"
   | "custom";
 
-type ValuesShape = Record<string, unknown>;
+type ValuesShape = object;
 
 export type FormField<
   TValues extends ValuesShape,
@@ -99,7 +99,8 @@ export default function Form<TValues extends ValuesShape>({
                   : ""
                 : "";
 
-            const rawValue = values[field.name];
+            const valuesRecord = values as unknown as Record<PropertyKey, unknown>;
+            const rawValue = valuesRecord[field.name] as TValues[typeof field.name];
             const displayValue =
               field.formatValue?.(
                 rawValue as never,
