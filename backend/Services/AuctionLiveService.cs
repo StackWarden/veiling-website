@@ -37,6 +37,11 @@ namespace backend.Services
                 throw new KeyNotFoundException("Auction not found.");
             }
 
+            if (!auction.ClockLocationId.HasValue)
+            {
+                throw new ArgumentException("Auction cannot be started without a clock location.");
+            }
+
             // Sorteer de items zodat Pending items eerst komen (die moeten geveild worden).
             var items = auction.AuctionItems
                 .Where(ai => ai.Status == AuctionItemStatus.Pending || ai.Status == AuctionItemStatus.Live)

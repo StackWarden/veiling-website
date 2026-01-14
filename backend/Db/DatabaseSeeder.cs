@@ -193,6 +193,28 @@ public static class DatabaseSeeder
                         // Continue anyway - table might already exist
                     }
                 }
+                
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(@"
+                        IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'ClockLocationId')
+                        BEGIN
+                            ALTER TABLE [Products] ADD [ClockLocationId] uniqueidentifier NULL;
+                            CREATE INDEX [IX_Products_ClockLocationId] ON [Products] ([ClockLocationId]);
+                            ALTER TABLE [Products] ADD CONSTRAINT [FK_Products_ClockLocations_ClockLocationId] 
+                                FOREIGN KEY ([ClockLocationId]) REFERENCES [ClockLocations] ([Id]) ON DELETE SET NULL;
+                        END
+                    ");
+                    Console.WriteLine("ClockLocationId column checked/added to Products table");
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714 || sqlEx.Number == 1913)
+                {
+                    Console.WriteLine("ClockLocationId column/index already exists on Products");
+                }
+                catch (Exception productsEx)
+                {
+                    Console.WriteLine($"Warning: Could not add ClockLocationId to Products: {productsEx.Message}");
+                }
             }
             else
             {

@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import useGet from "../api/get";
 
 type Species = {
   id: string;
   title: string;
+};
+
+type ClockLocation = {
+  id: string;
+  name: string;
 };
 
 type Product = {
@@ -17,6 +23,8 @@ type Product = {
   quantity: number;
   minPrice: number;
   photoUrl: string | null;
+  clockLocationId?: string | null;
+  clockLocation?: ClockLocation | null;
 };
 
 export default function ProductEdit() {
@@ -31,9 +39,18 @@ export default function ProductEdit() {
     stemLength: "",
     quantity: "",
     minPrice: "",
+    clockLocationId: "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  /* ---------- GET Clock Locations ---------- */
+  const {
+    data: clockLocations,
+    loading: clockLocationsLoading,
+  } = useGet<ClockLocation>({
+    route: "/clock-locations",
+  });
 
   type FormKey = keyof typeof form;
 
@@ -53,6 +70,7 @@ export default function ProductEdit() {
         stemLength: String(data.stemLength),
         quantity: String(data.quantity),
         minPrice: String(data.minPrice),
+        clockLocationId: data.clockLocationId || "",
       });
     };
 
@@ -106,6 +124,7 @@ export default function ProductEdit() {
         quantity: Number(form.quantity),
         minPrice: Number(form.minPrice),
         photoUrl,
+        clockLocationId: form.clockLocationId || null,
       }),
     });
 
@@ -194,6 +213,43 @@ export default function ProductEdit() {
               </button>
             </div>
           ))}
+
+          <div className="flex justify-between items-center mb-5">
+            <span className="font-medium">Clock Location</span>
+            {editField === "clockLocationId" ? (
+              <select
+                value={form.clockLocationId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, clockLocationId: e.target.value }))
+                }
+                className="border border-gray-300 rounded px-3 py-1 text-sm w-32"
+                onBlur={() => setEditField(null)}
+              >
+                <option value="">None</option>
+                {clockLocationsLoading ? (
+                  <option>Loading...</option>
+                ) : (
+                  clockLocations?.map((cl) => (
+                    <option key={cl.id} value={cl.id}>
+                      {cl.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            ) : (
+              <>
+                <span className="text-gray-700">
+                  {product.clockLocation?.name || "None"}
+                </span>
+                <button
+                  className="text-sm ml-4 text-[#162218] hover:underline underline-offset-2"
+                  onClick={() => setEditField("clockLocationId")}
+                >
+                  Edit
+                </button>
+              </>
+            )}
+          </div>
 
           <button
             onClick={saveChanges}

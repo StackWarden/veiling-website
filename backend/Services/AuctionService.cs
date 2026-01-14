@@ -80,16 +80,17 @@ namespace backend.Services
                 throw new ArgumentException("Auction date cannot be in the past.");
             }
 
-            var productIds = dto.ProductIds ?? new List<Guid>();
-
-            // Validate clock location if provided
-            if (dto.ClockLocationId.HasValue)
+            if (!dto.ClockLocationId.HasValue)
             {
-                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
-                {
-                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
-                }
+                throw new ArgumentException("Clock location is required for auctions.");
             }
+
+            if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+            {
+                throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+            }
+
+            var productIds = dto.ProductIds ?? new List<Guid>();
 
             var auction = new Auction
             {
@@ -107,9 +108,20 @@ namespace backend.Services
 
             foreach (var productId in productIds)
             {
-                if (!_db.Products.Any(p => p.Id == productId))
+                var product = _db.Products.FirstOrDefault(p => p.Id == productId);
+                if (product == null)
                 {
                     throw new ArgumentException($"Product {productId} does not exist.");
+                }
+
+                if (!product.ClockLocationId.HasValue)
+                {
+                    throw new ArgumentException($"Product {productId} does not have a clock location assigned.");
+                }
+
+                if (product.ClockLocationId.Value != dto.ClockLocationId.Value)
+                {
+                    throw new ArgumentException($"Product {productId} belongs to a different clock location than the auction.");
                 }
 
                 var auctionItem = new AuctionItem
@@ -174,12 +186,36 @@ namespace backend.Services
                 throw new ArgumentException("Auction date cannot be in the past.");
             }
 
-            // Validate clock location if provided
-            if (dto.ClockLocationId.HasValue)
+            if (!dto.ClockLocationId.HasValue)
             {
-                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                throw new ArgumentException("Clock location is required for auctions.");
+            }
+
+            if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+            {
+                throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+            }
+
+            var productIds = dto.ProductIds ?? new List<Guid>();
+            if (productIds.Any())
+            {
+                foreach (var productId in productIds)
                 {
-                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                    var product = _db.Products.FirstOrDefault(p => p.Id == productId);
+                    if (product == null)
+                    {
+                        throw new ArgumentException($"Product {productId} does not exist.");
+                    }
+
+                    if (!product.ClockLocationId.HasValue)
+                    {
+                        throw new ArgumentException($"Product {productId} does not have a clock location assigned.");
+                    }
+
+                    if (product.ClockLocationId.Value != dto.ClockLocationId.Value)
+                    {
+                        throw new ArgumentException($"Product {productId} belongs to a different clock location than the auction.");
+                    }
                 }
             }
 

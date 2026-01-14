@@ -20,13 +20,20 @@ public class ProductController : Controller
     // GET /products
     [Authorize(Roles = "admin,supplier,auctioneer")]
     [HttpGet("")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index([FromQuery] Guid? clockLocationId)
     {
-        var products = await _db.Products
+        var query = _db.Products
             .AsNoTracking()
             .Include(p => p.Species)
-            .ToListAsync();
+            .Include(p => p.ClockLocation)
+            .AsQueryable();
 
+        if (clockLocationId.HasValue)
+        {
+            query = query.Where(p => p.ClockLocationId == clockLocationId.Value);
+        }
+
+        var products = await query.ToListAsync();
         return Ok(products);
     }
 
@@ -38,6 +45,7 @@ public class ProductController : Controller
         var product = await _db.Products
             .AsNoTracking()
             .Include(p => p.Species)
+            .Include(p => p.ClockLocation)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product is null)
@@ -61,6 +69,13 @@ public class ProductController : Controller
         if (!speciesExists)
             return BadRequest("Invalid SpeciesId.");
 
+        if (dto.ClockLocationId.HasValue)
+        {
+            var clockLocationExists = await _db.ClockLocations.AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
+            if (!clockLocationExists)
+                return BadRequest("Invalid ClockLocationId.");
+        }
+
         var product = new Product
         {
             Id = Guid.NewGuid(),
@@ -70,7 +85,8 @@ public class ProductController : Controller
             StemLength = dto.StemLength,
             Quantity = dto.Quantity,
             MinPrice = dto.MinPrice,
-            PhotoUrl = dto.PhotoUrl
+            PhotoUrl = dto.PhotoUrl,
+            ClockLocationId = dto.ClockLocationId
         };
 
         _db.Products.Add(product);
@@ -112,6 +128,14 @@ public class ProductController : Controller
         if (dto.PhotoUrl is not null)
             product.PhotoUrl = string.IsNullOrWhiteSpace(dto.PhotoUrl) ? null : dto.PhotoUrl;
 
+        if (dto.ClockLocationId.HasValue)
+        {
+            var clockLocationExists = await _db.ClockLocations.AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
+            if (!clockLocationExists)
+                return BadRequest("Invalid ClockLocationId.");
+            product.ClockLocationId = dto.ClockLocationId.Value;
+        }
+
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -141,6 +165,7 @@ public class CreateProductDto
     public int Quantity { get; set; }
     public decimal MinPrice { get; set; }
     public string? PhotoUrl { get; set; }
+    public Guid? ClockLocationId { get; set; }
 }
 
 public class UpdateProductDto
@@ -151,4 +176,5 @@ public class UpdateProductDto
     public int? Quantity { get; set; }
     public decimal? MinPrice { get; set; }
     public string? PhotoUrl { get; set; }
+    public Guid? ClockLocationId { get; set; }
 }
