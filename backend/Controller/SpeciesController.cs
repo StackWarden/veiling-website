@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace backend.Controllers;
 
 [Route("species")]
-[Authorize(Roles = "admin")]
+[Authorize(Roles = "supplier,admin")]
 public class SpeciesController : Controller
 {
     private readonly AppDbContext _db;

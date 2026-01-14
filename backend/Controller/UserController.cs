@@ -48,6 +48,7 @@ public class UserController : ControllerBase
         return Ok(users);
     }
 
+<<<<<<< HEAD
     // GET: /users/{id}
     [HttpGet("{id:guid}")]
     [Authorize(Roles = "admin")]
