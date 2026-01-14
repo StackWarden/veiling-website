@@ -85,6 +85,7 @@ export default function PostAuction() {
     productIds: [],
     clockLocationId: null,
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProductsForLocation = async () => {
@@ -288,10 +289,11 @@ export default function PostAuction() {
       columns={2}
       submitting={postLoading}
       submitLabel="Create Auction"
-      error={postError}
+      error={postError || validationError || undefined}
       onSubmit={async (values) => {
+        setValidationError(null);
         if (!values.clockLocationId) {
-          alert("Clock location is required for auctions.");
+          setValidationError("Clock location is required for auctions.");
           return;
         }
         await createAuction(values);

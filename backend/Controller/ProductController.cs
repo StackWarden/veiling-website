@@ -17,6 +17,16 @@ public class ProductController : Controller
         _db = db;
     }
 
+    private async Task<bool> ValidateClockLocationAsync(Guid? clockLocationId)
+    {
+        if (!clockLocationId.HasValue)
+            return true;
+
+        return await _db.ClockLocations
+            .AsNoTracking()
+            .AnyAsync(cl => cl.Id == clockLocationId.Value);
+    }
+
     // GET /products
     [Authorize(Roles = "admin,supplier,auctioneer")]
     [HttpGet("")]
@@ -64,17 +74,17 @@ public class ProductController : Controller
         {
             return Unauthorized("Invalid user id");
         }
-        // check of species bestaat
-        var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
-        if (!speciesExists)
+        // Validate species en clock location at the same time
+        var speciesTask = _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
+        var clockLocationTask = ValidateClockLocationAsync(dto.ClockLocationId);
+
+        await Task.WhenAll(speciesTask, clockLocationTask);
+
+        if (!await speciesTask)
             return BadRequest("Invalid SpeciesId.");
 
-        if (dto.ClockLocationId.HasValue)
-        {
-            var clockLocationExists = await _db.ClockLocations.AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
-            if (!clockLocationExists)
-                return BadRequest("Invalid ClockLocationId.");
-        }
+        if (!await clockLocationTask)
+            return BadRequest("Invalid ClockLocationId.");
 
         var product = new Product
         {
@@ -100,9 +110,22 @@ public class ProductController : Controller
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid userId))
+        {
+            return Unauthorized("Invalid user id");
+        }
+
+        var isAdmin = User.IsInRole("admin");
+
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null)
             return NotFound();
+
+        if (!isAdmin && product.SupplierId != userId)
+        {
+            return Forbid("You can only update your own products.");
+        }
 
         if (dto.SpeciesId.HasValue)
         {
@@ -130,8 +153,7 @@ public class ProductController : Controller
 
         if (dto.ClockLocationId.HasValue)
         {
-            var clockLocationExists = await _db.ClockLocations.AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
-            if (!clockLocationExists)
+            if (!await ValidateClockLocationAsync(dto.ClockLocationId))
                 return BadRequest("Invalid ClockLocationId.");
             product.ClockLocationId = dto.ClockLocationId.Value;
         }
@@ -145,9 +167,22 @@ public class ProductController : Controller
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid userId))
+        {
+            return Unauthorized("Invalid user id");
+        }
+
+        var isAdmin = User.IsInRole("admin");
+
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null)
             return NotFound();
+
+        if (!isAdmin && product.SupplierId != userId)
+        {
+            return Forbid("You can only delete your own products.");
+        }
 
         _db.Products.Remove(product);
         await _db.SaveChangesAsync();

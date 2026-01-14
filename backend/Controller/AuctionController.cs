@@ -31,9 +31,9 @@ namespace backend.Controllers
         // maar laten we niet te ambitieus doen voor een simpele lijst ophalen.
         [HttpGet]
         [Authorize]
-        public IActionResult GetAllAuctions()
+        public async Task<IActionResult> GetAllAuctions()
         {
-            var auctions = _auctionService.GetAllAuctions();
+            var auctions = await _auctionService.GetAllAuctions();
             return Ok(auctions);
         }
 
@@ -42,9 +42,9 @@ namespace backend.Controllers
         // Geeft 404 als de veiling niet bestaat (wie had dat gedacht).
         [HttpGet("{id}")]
         [Authorize]
-        public IActionResult GetAuctionById(Guid id)
+        public async Task<IActionResult> GetAuctionById(Guid id)
         {
-            var auction = _auctionService.GetAuctionById(id);
+            var auction = await _auctionService.GetAuctionById(id);
             if (auction == null)
             {
                 return NotFound("Auction not found.");
@@ -58,7 +58,7 @@ namespace backend.Controllers
         // Geeft bij succes een 201 Created met het nieuwe veiling-ID en de veilingdetails.
         [HttpPost]
         [Authorize(Roles = "auctioneer,admin")]
-        public IActionResult CreateAuction([FromBody] CreateAuctionWithItemsDto dto)
+        public async Task<IActionResult> CreateAuction([FromBody] CreateAuctionWithItemsDto dto)
         {
             if (dto == null)
             {
@@ -67,7 +67,7 @@ namespace backend.Controllers
 
             try
             {
-                var createdAuction = _auctionService.CreateAuction(dto);
+                var createdAuction = await _auctionService.CreateAuction(dto);
                 // Return CreatedAtAction met het ID van de nieuwe veiling en de veilinginfo
                 return CreatedAtAction(nameof(GetAuctionById), new { id = createdAuction.Id }, createdAuction);
             }
@@ -87,12 +87,33 @@ namespace backend.Controllers
         // Controleert of de veiling bestaat (we zijn geen tovenaars) en valideert de input.
         [HttpPut("{id}")]
         [Authorize(Roles = "auctioneer,admin")]
-        public IActionResult UpdateAuction(Guid id, [FromBody] CreateAuctionWithItemsDto dto)
+        public async Task<IActionResult> UpdateAuction(Guid id, [FromBody] CreateAuctionWithItemsDto dto)
         {
+            string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+            {
+                return Unauthorized("Invalid user id");
+            }
+
+            var isAdmin = User.IsInRole("admin");
+
+            // Check ownership before calling service
+            var existingAuction = await _auctionService.GetAuctionById(id);
+            if (existingAuction == null)
+            {
+                return NotFound("Auction not found.");
+            }
+
+            // Get the auction entity to check AuctionneerId
+            // We need to check ownership, so we'll pass userId and isAdmin to the service
             try
             {
-                var message = _auctionService.UpdateAuction(id, dto);
+                var message = await _auctionService.UpdateAuction(id, dto, userId, isAdmin);
                 return Ok(message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
             }
             catch (KeyNotFoundException ex)
             {
@@ -109,12 +130,24 @@ namespace backend.Controllers
         // Geeft een foutmelding als de veiling niet bestaat, anders 200 met een succesboodschap.
         [HttpDelete("{id}")]
         [Authorize(Roles = "auctioneer,admin")]
-        public IActionResult DeleteAuction(Guid id)
+        public async Task<IActionResult> DeleteAuction(Guid id)
         {
+            string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdString, out Guid userId))
+            {
+                return Unauthorized("Invalid user id");
+            }
+
+            var isAdmin = User.IsInRole("admin");
+
             try
             {
-                var message = _auctionService.DeleteAuction(id);
+                var message = await _auctionService.DeleteAuction(id, userId, isAdmin);
                 return Ok(message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
             }
             catch (KeyNotFoundException ex)
             {
@@ -211,11 +244,11 @@ namespace backend.Controllers
 
         [HttpPatch("{id:guid}/time")]
         [Authorize(Roles = "auctioneer,admin")]
-        public IActionResult SetAuctionTime(Guid id, [FromBody] SetAuctionTimeDto dto)
+        public async Task<IActionResult> SetAuctionTime(Guid id, [FromBody] SetAuctionTimeDto dto)
         {
             try
             {
-                var updated = _auctionService.SetAuctionTime(id, dto);
+                var updated = await _auctionService.SetAuctionTime(id, dto);
                 return Ok(updated);
             }
             catch (ArgumentException ex)

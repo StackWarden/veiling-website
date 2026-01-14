@@ -56,6 +56,7 @@ export default function AuctionScreen({ auctionId }: Props) {
   const [displayPrice, setDisplayPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [startAuctionError, setStartAuctionError] = useState<string | null>(null);
 
   // serverTime - clientNow (ms). Use it to make countdown consistent.
   const serverOffsetMsRef = useRef<number>(0);
@@ -221,28 +222,34 @@ export default function AuctionScreen({ auctionId }: Props) {
           <div className="w-full mt-10">
             <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
               <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
-                      method: "POST",
-                      credentials: "include",
-                      headers: { "Content-Type": "application/json" },
-                    });
+              {startAuctionError && (
+                <div className="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+                  {startAuctionError}
+                </div>
+              )}
+            <button
+              onClick={async () => {
+                setStartAuctionError(null);
+                try {
+                  const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                  });
 
-                    if (!res.ok) {
-                      const text = await res.text().catch(() => "");
-                      throw new Error(text || `Failed to start auction (${res.status})`);
-                    }
-
-                    console.log("Auction started!");
-                    const data = await res.json();
-                    setLive(data);
-                  } catch (error) {
-                    console.error("Error starting auction:", error);
-                    alert("Failed to start auction.");
+                  if (!res.ok) {
+                    const text = await res.text().catch(() => "");
+                    throw new Error(text || `Failed to start auction (${res.status})`);
                   }
-                }}
+
+                  console.log("Auction started!");
+                  const data = await res.json();
+                  setLive(data);
+                } catch (error) {
+                  console.error("Error starting auction:", error);
+                  setStartAuctionError(error instanceof Error ? error.message : "Failed to start auction.");
+                }
+              }}
                 className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"
               >
                 Start Auction
@@ -312,13 +319,19 @@ export default function AuctionScreen({ auctionId }: Props) {
           </div>
         )}
       </section>
-      <RoleGate allow={["auctioneer"]}>
+        <RoleGate allow={["auctioneer"]}>
         {/* Auctioneer Dashboard */}
         <div className="w-full mt-10">
           <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
             <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
+            {startAuctionError && (
+              <div className="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+                {startAuctionError}
+              </div>
+            )}
             <button
               onClick={async () => {
+                setStartAuctionError(null);
                 try {
                   const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
                     method: "POST",
@@ -336,7 +349,7 @@ export default function AuctionScreen({ auctionId }: Props) {
                   setLive(data);
                 } catch (error) {
                   console.error("Error starting auction:", error);
-                  alert("Failed to start auction.");
+                  setStartAuctionError(error instanceof Error ? error.message : "Failed to start auction.");
                 }
               }}
               className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"

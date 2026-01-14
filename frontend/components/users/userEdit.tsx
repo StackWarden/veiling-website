@@ -22,6 +22,8 @@ export default function UserEdit() {
 
   const [user, setUser] = useState<UserDto | null>(null);
   const [role, setRole] = useState("buyer");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -46,6 +48,9 @@ export default function UserEdit() {
   const saveChanges = async () => {
     if (!user) return;
 
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
       method: "PUT",
       credentials: "include",
@@ -53,10 +58,15 @@ export default function UserEdit() {
       body: JSON.stringify({ role }),
     });
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      setErrorMessage("Failed to update user. Please try again.");
+      return;
+    }
 
-    alert("User updated!");
-    router.push("/users");
+    setSuccessMessage("User updated successfully!");
+    setTimeout(() => {
+      router.push("/users");
+    }, 1500);
   };
 
   if (!user) {
@@ -68,6 +78,18 @@ export default function UserEdit() {
       <h1 className="text-[32px] font-bold text-[#162218] mb-10">
         User info
       </h1>
+
+      {successMessage && (
+        <div className="mb-4 px-4 py-3 bg-green-100 border border-green-300 text-green-700 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="flex gap-16">
         <div className="border border-[#D9D9D9] rounded-xl p-8 w-[380px] shadow-sm">

@@ -63,7 +63,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded) {
             return Unauthorized("Invalid email or password.");
         }
-        var token = GenerateJwtToken(user.Id.ToString());
+        var token = await GenerateJwtTokenAsync(user.Id.ToString());
 
         Response.Cookies.Append("jwt", token, new CookieOptions
         {
@@ -175,7 +175,7 @@ public class AuthController : ControllerBase
     // Genereert een JWT-token met de user-ID als subject.
     // Gebruikt het geheime wachtwoord uit je .env (hopelijk niet hardcoded).
     // Resultaat: een versleutelde string waarmee de user kan doen alsof hij legitiem is.
-    private string GenerateJwtToken(string userId)
+    private async Task<string> GenerateJwtTokenAsync(string userId)
     {
         var secret = Environment.GetEnvironmentVariable("JWT_SECRET");
 
@@ -184,7 +184,7 @@ public class AuthController : ControllerBase
 
         // Find user and roles
         User user = _userManager.Users.First(u => u.Id.ToString() == userId);
-        var roles = _userManager.GetRolesAsync(user).Result;
+        var roles = await _userManager.GetRolesAsync(user);
 
         // Create claims
         var claims = new List<Claim>

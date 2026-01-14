@@ -20,9 +20,10 @@ public class AuctionItemController : Controller
     // GET: /AuctionItem
     [HttpGet]
     [Authorize]
-    public IActionResult GetAllAuctionItems()
+    public async Task<IActionResult> GetAllAuctionItems()
     {
-        var items = _db.AuctionItems
+        var items = await _db.AuctionItems
+            .AsNoTracking()
             .Select(ai => new
             {
                 ai.Id,
@@ -33,7 +34,7 @@ public class AuctionItemController : Controller
                 ai.SoldAtUtc,
                 ai.SoldPrice
             })
-            .ToList();
+            .ToListAsync();
 
         return Ok(items);
     }
@@ -41,9 +42,11 @@ public class AuctionItemController : Controller
     // GET: /AuctionItem/{id}
     [HttpGet("{id}")]
     [Authorize]
-    public IActionResult GetAuctionItemById(Guid id)
+    public async Task<IActionResult> GetAuctionItemById(Guid id)
     {
-        var auctionItem = _db.AuctionItems.FirstOrDefault(a => a.Id == id);
+        var auctionItem = await _db.AuctionItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id);
         if (auctionItem == null)
             return NotFound("Auction item not found.");
 
@@ -53,14 +56,14 @@ public class AuctionItemController : Controller
     // DELETE: /AuctionItem/{id}
     [HttpDelete("{id}")]
     [Authorize(Roles = "auctioneer,admin")]
-    public IActionResult DeleteAuctionItem(Guid id)
+    public async Task<IActionResult> DeleteAuctionItem(Guid id)
     {
-        var auctionItem = _db.AuctionItems.Find(id);
+        var auctionItem = await _db.AuctionItems.FirstOrDefaultAsync(a => a.Id == id);
         if (auctionItem == null)
             return NotFound("Auction item not found.");
 
         _db.AuctionItems.Remove(auctionItem);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
 
         return Ok($"Auction item {auctionItem.Id} deleted successfully.");
     }
