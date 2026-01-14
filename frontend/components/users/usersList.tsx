@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import useGet from "../api/get";
-import useDelete from "../api/delete";
 import { RoleGate } from "../RoleGate";
 import List, { ListHeader } from "../list";
 import useAuth from "../../hooks/useAuth";
@@ -20,6 +20,7 @@ type User = {
 
 export default function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const { role } = useAuth();
 
   const { loading, execute } = useGet<User>({
@@ -36,13 +37,6 @@ export default function UsersList() {
     },
   });
 
-  const { loading: deleting, execute: deleteUser } = useDelete({
-    baseRoute: "/users",
-    onSuccess: (id) => {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-    },
-  });
-
   useEffect(() => {
     execute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,7 +44,20 @@ export default function UsersList() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure?")) return;
-    await deleteUser(id);
+    
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/delete/${id}`,
+        { method: "DELETE", credentials: "include" }
+      );
+
+      if (!res.ok) return;
+
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Build headers array conditionally
@@ -98,22 +105,35 @@ export default function UsersList() {
               if (role === "admin") {
                 row.actions = (
                   <RoleGate allow={["admin"]}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(user.id);
-                      }}
-                      className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
-                      type="button"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-6 justify-end">
+                      <Link
+                        href={`/users/edit/${user.id}`}
+                        className="hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(user.id);
+                        }}
+                        className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </RoleGate>
                 );
               }
               return row;
             })}
             rowKey="id"
+            onRowClick={(user) => {
+              if (role === "admin") {
+                window.location.href = `/users/edit/${user.id}`;
+              }
+            }}
           />
         )}
       </div>
