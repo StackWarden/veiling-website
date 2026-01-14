@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Db;
-using backend.Db.Entities;
-using Microsoft.EntityFrameworkCore; 
 using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
@@ -63,13 +61,5 @@ public class AuctionItemController : Controller
         _db.SaveChanges();
 
         return Ok($"Auction item {auctionItem.Id} deleted successfully.");
-    }
-    
-    public class CreateAuctionItemDto
-    {
-        public Guid AuctionId { get; set; }
-        public Guid ProductId { get; set; }
-
-        public string Status { get; set; } = "Pending";
     }
 }

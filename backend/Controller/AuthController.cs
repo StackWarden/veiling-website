@@ -1,14 +1,12 @@
-using DotNetEnv;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using backend.Db.Entities;
+using backend.Dtos;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 
 namespace backend.Controllers;
 
@@ -145,14 +143,27 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email)) {
-            return BadRequest("Name and Email are required.");
+        if (string.IsNullOrWhiteSpace(dto.Name) || 
+            string.IsNullOrWhiteSpace(dto.Email) ||
+            string.IsNullOrWhiteSpace(dto.Password))
+        {
+            return BadRequest("Name, Email and Password are required.");
+        }
+
+        var allowedRoles = new[] { "buyer", "supplier" };
+
+        if (string.IsNullOrWhiteSpace(dto.Role) || 
+            !allowedRoles.Contains(dto.Role.ToLower()))
+        {
+            return Forbid("Invalid role.");
         }
 
         var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser != null) {
+        if (existingUser != null)
+        {
             return Conflict("A user with this email already exists.");
         }
+
         var user = new User
         {
             UserName = dto.Email,
@@ -162,14 +173,19 @@ public class AuthController : ControllerBase
 
         var result = await _userManager.CreateAsync(user, dto.Password);
 
-        if (!result.Succeeded) {
+        if (!result.Succeeded)
+        {
             return BadRequest(result.Errors);
         }
 
-        // Default rol meegeven, omdat iedereen ergens moet beginnen.
-        await _userManager.AddToRoleAsync(user, "buyer"); // Of "supplier" / "auctioneer" als je zin hebt.
+        // Rol veilig toewijzen
+        await _userManager.AddToRoleAsync(user, dto.Role.ToLower());
 
-        return Ok(new { message = $"User {user.Name} registered successfully." });
+        return Ok(new
+        {
+            message = $"User {user.Name} registered successfully.",
+            role = dto.Role.ToLower()
+        });
     }
 
     // Genereert een JWT-token met de user-ID als subject.
@@ -210,21 +226,15 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-}
-
-// DTO voor registratie: de broodnodige gegevens om een nieuwe gebruiker aan te maken.
-// Geen magie, geen extra velden, gewoon de essentials.
-public class RegisterDto
-{
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-// DTO voor login, want blijkbaar wil niemand elke keer zijn hele user-object meesturen.
-// Alleen email en wachtwoord zijn genoeg om toegang te krijgen tot de digitale wereld.
-public class LoginDto
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
+    [HttpGet("registerRoles")]
+    [AllowAnonymous]
+    public IActionResult GetRegisterRoles()
+    {
+        var roles = new List<string>
+        {
+            "buyer",
+            "supplier",
+        };
+        return Ok(roles);
+    }
 }

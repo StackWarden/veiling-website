@@ -10,6 +10,7 @@ export type FormFieldType =
   | "datetime-local"
   | "date"
   | "time"
+  | "password"
   | "custom";
 
 type ValuesShape = object;
