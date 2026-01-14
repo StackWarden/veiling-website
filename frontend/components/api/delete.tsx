@@ -68,7 +68,28 @@ export default function useDelete({
         );
 
         if (!response.ok) {
-          throw new Error(`Verwijderen mislukt: ${response.statusText}`);
+          let errorMessage = `Verwijderen mislukt: ${response.statusText}`;
+          try {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = await response.json() as 
+                | { message?: string; error?: string }
+                | string;
+              
+              if (typeof errorData === 'object' && errorData !== null) {
+                errorMessage = errorData.message || errorData.error || errorMessage;
+              } else if (typeof errorData === 'string') {
+                errorMessage = errorData;
+              }
+            } else {
+              const text = await response.text();
+              if (text) {
+                errorMessage = text;
+              }
+            }
+          } catch {
+          }
+          throw new Error(errorMessage);
         }
 
         if (onSuccess) onSuccess(id);
