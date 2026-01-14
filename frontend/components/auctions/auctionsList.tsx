@@ -10,9 +10,10 @@ import CreateButton from "@/components/createButton";
 type Auction = {
   id: string;
   description: string;
-  auctionDate: string; // "YYYY-MM-DD"
-  auctionTime: string | null; // "HH:mm" or null
+  auctionDate: string; // YYYY-MM-DD
+  auctionTime: string | null; // HH:mm or null
   status: string;
+  clockLocationName?: string | null;
 };
 
 export default function AuctionsDashboard() {
@@ -42,6 +43,7 @@ export default function AuctionsDashboard() {
           auctionDate: dateLabel,
           auctionTime: timeLabel,
           status: a.status || "-",
+          clock: a.clockLocationName || "-",
         };
       });
 
