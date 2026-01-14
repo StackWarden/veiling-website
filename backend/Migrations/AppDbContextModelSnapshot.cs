@@ -159,24 +159,29 @@ namespace backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateOnly>("AuctionDate")
-                        .HasColumnType("date");
-
-                    b.Property<TimeOnly?>("AuctionTime")
-                        .HasColumnType("time");
-
                     b.Property<Guid>("AuctionneerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ClockLocationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClockLocationId");
 
                     b.ToTable("Auctions");
                 });
@@ -249,6 +254,25 @@ namespace backend.Migrations
                     b.HasIndex("BuyerId");
 
                     b.ToTable("Bids");
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.ClockLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClockLocations");
                 });
 
             modelBuilder.Entity("backend.Db.Entities.Product", b =>
@@ -446,6 +470,16 @@ namespace backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("backend.Db.Entities.Auction", b =>
+                {
+                    b.HasOne("backend.Db.Entities.ClockLocation", "ClockLocation")
+                        .WithMany()
+                        .HasForeignKey("ClockLocationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ClockLocation");
                 });
 
             modelBuilder.Entity("backend.Db.Entities.AuctionItem", b =>

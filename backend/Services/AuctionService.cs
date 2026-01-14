@@ -1,6 +1,7 @@
 using backend.Db;
 using backend.Db.Entities;
 using backend.Dtos;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace backend.Services
@@ -22,15 +23,19 @@ namespace backend.Services
         // Haalt alle veilingen op uit de database (simpele zaak, geen poespas).
         public List<AuctionDto> GetAllAuctions()
         {
-            var auctions = _db.Auctions.ToList();
+            var auctions = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .ToList();
 
             var result = auctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
                 Description = a.Description,
-                AuctionDate = a.AuctionDate,
-                AuctionTime = a.AuctionTime,
+                StartTime = a.StartTime,
+                EndTime = a.EndTime,
                 Status = a.Status,
+                ClockLocationId = a.ClockLocationId,
+                ClockLocationName = a.ClockLocation?.Name,
                 Items = new List<AuctionItemDto>()
             }).ToList();
 
@@ -41,16 +46,20 @@ namespace backend.Services
         // Retourneert null als deze niet bestaat (de controller maakt er dan een NotFound van).
         public AuctionDto? GetAuctionById(Guid id)
         {
-            var auction = _db.Auctions.FirstOrDefault(a => a.Id == id);
+            var auction = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .FirstOrDefault(a => a.Id == id);
             if (auction == null) return null;
-
+            // Geen items opgehaald voor eenvoud. Als je items nodig hebt, kun je hier een include toevoegen.
             return new AuctionDto
             {
                 Id = auction.Id,
                 Description = auction.Description,
-                AuctionDate = auction.AuctionDate,
-                AuctionTime = auction.AuctionTime,
+                StartTime = auction.StartTime,
+                EndTime = auction.EndTime,
                 Status = auction.Status,
+                ClockLocationId = auction.ClockLocationId,
+                ClockLocationName = auction.ClockLocation?.Name,
                 Items = new List<AuctionItemDto>()
             };
         }
@@ -65,31 +74,43 @@ namespace backend.Services
             {
                 throw new ArgumentException("Request body is required.");
             }
-
-            if (dto.AuctionDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            if (dto.EndTime <= dto.StartTime)
             {
-                throw new ArgumentException("Auction date cannot be in the past.");
+                throw new ArgumentException("End time must be after start time.");
             }
 
+            // Lege lijst als er geen items zijn (je kunt een veiling zonder items maken, maar of dat zinvol is...).
             var productIds = dto.ProductIds ?? new List<Guid>();
+
+            // Validate clock location if provided
+            if (dto.ClockLocationId.HasValue)
+            {
+                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                {
+                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                }
+            }
 
             var auction = new Auction
             {
                 Id = Guid.NewGuid(),
                 AuctionneerId = dto.AuctionneerId,
                 Description = dto.Description,
-                AuctionDate = dto.AuctionDate,
-                AuctionTime = dto.AuctionTime,
-                Status = dto.Status
+                StartTime = dto.StartTime,
+                EndTime = dto.EndTime,
+                Status = dto.Status,
+                ClockLocationId = dto.ClockLocationId
             };
 
             _db.Auctions.Add(auction);
-            _db.SaveChanges();
+            _db.SaveChanges(); // Sla op om het Auction object een ID te geven in de database
 
+            // Maak AuctionItem entries voor elk productId
             foreach (var productId in productIds)
             {
                 if (!_db.Products.Any(p => p.Id == productId))
                 {
+                    // Oeps, een product bestaat niet
                     throw new ArgumentException($"Product {productId} does not exist.");
                 }
 
@@ -100,11 +121,15 @@ namespace backend.Services
                     ProductId = productId,
                     Status = AuctionItemStatus.Pending
                 };
-
                 _db.AuctionItems.Add(auctionItem);
             }
 
             _db.SaveChanges();
+
+            // Reload auction with clock location
+            var createdAuction = _db.Auctions
+                .Include(a => a.ClockLocation)
+                .FirstOrDefault(a => a.Id == auction.Id);
 
             var items = _db.AuctionItems
                 .Where(ai => ai.AuctionId == auction.Id)
@@ -120,9 +145,11 @@ namespace backend.Services
             {
                 Id = auction.Id,
                 Description = auction.Description,
-                AuctionDate = auction.AuctionDate,
-                AuctionTime = auction.AuctionTime,
+                StartTime = auction.StartTime,
+                EndTime = auction.EndTime,
                 Status = auction.Status,
+                ClockLocationId = createdAuction?.ClockLocationId,
+                ClockLocationName = createdAuction?.ClockLocation?.Name,
                 Items = items
             };
         }
@@ -137,22 +164,26 @@ namespace backend.Services
             {
                 throw new KeyNotFoundException("Auction not found.");
             }
-
-            if (dto == null)
+            if (dto.EndTime <= dto.StartTime)
             {
-                throw new ArgumentException("Request body is required.");
+                throw new ArgumentException("End time must be after start time.");
             }
 
-            if (dto.AuctionDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            // Validate clock location if provided
+            if (dto.ClockLocationId.HasValue)
             {
-                throw new ArgumentException("Auction date cannot be in the past.");
+                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                {
+                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                }
             }
 
-            auction.AuctionDate = dto.AuctionDate;
-            auction.AuctionTime = dto.AuctionTime;
+            auction.StartTime = dto.StartTime;
+            auction.EndTime = dto.EndTime;
             auction.Status = dto.Status;
             auction.AuctionneerId = dto.AuctionneerId;
             auction.Description = dto.Description;
+            auction.ClockLocationId = dto.ClockLocationId;
 
             _db.SaveChanges();
 
@@ -173,32 +204,6 @@ namespace backend.Services
             _db.SaveChanges();
 
             return $"Auction {auction.Id} deleted successfully.";
-        }
-        public AuctionDto SetAuctionTime(Guid id, SetAuctionTimeDto dto)
-        {
-            if (dto == null)
-            {
-                throw new ArgumentException("Request body is required.");
-            }
-
-            var auction = _db.Auctions.Find(id);
-            if (auction == null)
-            {
-                throw new KeyNotFoundException("Auction not found.");
-            }
-
-            auction.AuctionTime = dto.AuctionTime;
-            _db.SaveChanges();
-
-            return new AuctionDto
-            {
-                Id = auction.Id,
-                Description = auction.Description,
-                AuctionDate = auction.AuctionDate,
-                AuctionTime = auction.AuctionTime,
-                Status = auction.Status,
-                Items = new List<AuctionItemDto>()
-            };
         }
     }
 }

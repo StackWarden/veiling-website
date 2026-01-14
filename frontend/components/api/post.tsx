@@ -48,8 +48,9 @@ export function usePost<TBody extends object, TResult = unknown>({
       setError("");
 
       try {
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}${route}`;
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}${route}`,
+          apiUrl,
           {
             method: "POST",
             credentials: "include",
