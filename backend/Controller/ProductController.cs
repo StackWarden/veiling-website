@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Db;
+using backend.Dtos;
 using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -231,26 +232,4 @@ public class ProductController : Controller
 
         return NoContent();
     }
-}
-
-public class CreateProductDto
-{
-    public Guid SpeciesId { get; set; }
-    public string PotSize { get; set; } = string.Empty;
-    public int StemLength { get; set; }
-    public int Quantity { get; set; }
-    public decimal MinPrice { get; set; }
-    public string? PhotoUrl { get; set; }
-    public Guid? ClockLocationId { get; set; }
-}
-
-public class UpdateProductDto
-{
-    public Guid? SpeciesId { get; set; }
-    public string? PotSize { get; set; }
-    public int? StemLength { get; set; }
-    public int? Quantity { get; set; }
-    public decimal? MinPrice { get; set; }
-    public string? PhotoUrl { get; set; }
-    public Guid? ClockLocationId { get; set; }
 }
