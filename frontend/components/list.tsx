@@ -63,7 +63,12 @@ export default function List<T extends Record<string, unknown>>({
                   </td>
                 ))}
 
-                { <td className="p-4 text-end">{row.actions as ReactNode}</td> }
+                {(() => {
+                  const actions = row.actions;
+                  return actions ? (
+                    <td className="p-4 text-end">{actions as ReactNode}</td>
+                  ) : null;
+                })()}
               </tr>
             ))}
           </tbody>
