@@ -163,6 +163,7 @@ export default function AddProduct() {
               <label className="font-semibold">Stem Length (cm)</label>
               <input
                 type="number"
+                value={stemLength}
                 onChange={(e) => setStemLength(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required
@@ -174,6 +175,7 @@ export default function AddProduct() {
               <input
                 type="number"
                 step="0.01"
+                value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required
@@ -206,6 +208,7 @@ export default function AddProduct() {
                 <label className="font-semibold">Pot height (mm)</label>
                 <input
                   type="number"
+                  value={potHeight}
                   onChange={(e) => setPotHeight(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-3"
                   required
@@ -216,6 +219,7 @@ export default function AddProduct() {
                 <label className="font-semibold">Pot diameter (mm)</label>
                 <input
                   type="number"
+                  value={potDiameter}
                   onChange={(e) => setPotDiameter(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-3"
                   required
@@ -227,6 +231,7 @@ export default function AddProduct() {
               <label className="font-semibold">Quantity</label>
               <input
                 type="number"
+                value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required

@@ -69,40 +69,82 @@ public class ProductController : Controller
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
+        if (dto == null)
+        {
+            return BadRequest("Request body is required.");
+        }
+
         string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out Guid supplierId))
         {
             return Unauthorized("Invalid user id");
         }
-        // Validate species en clock location at the same time
-        var speciesTask = _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
-        var clockLocationTask = ValidateClockLocationAsync(dto.ClockLocationId);
 
-        await Task.WhenAll(speciesTask, clockLocationTask);
-
-        if (!await speciesTask)
-            return BadRequest("Invalid SpeciesId.");
-
-        if (!await clockLocationTask)
-            return BadRequest("Invalid ClockLocationId.");
-
-        var product = new Product
+        try
         {
-            Id = Guid.NewGuid(),
-            SupplierId = supplierId,
-            SpeciesId = dto.SpeciesId,
-            PotSize = dto.PotSize,
-            StemLength = dto.StemLength,
-            Quantity = dto.Quantity,
-            MinPrice = dto.MinPrice,
-            PhotoUrl = dto.PhotoUrl,
-            ClockLocationId = dto.ClockLocationId
-        };
+            var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
+            var clockLocationValid = await ValidateClockLocationAsync(dto.ClockLocationId);
 
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync();
+            if (!speciesExists)
+                return BadRequest("Invalid SpeciesId.");
 
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            if (!clockLocationValid)
+                return BadRequest("Invalid ClockLocationId.");
+
+            var product = new Product
+            {
+                Id = Guid.NewGuid(),
+                SupplierId = supplierId,
+                SpeciesId = dto.SpeciesId,
+                PotSize = dto.PotSize,
+                StemLength = dto.StemLength,
+                Quantity = dto.Quantity,
+                MinPrice = dto.MinPrice,
+                PhotoUrl = dto.PhotoUrl,
+                ClockLocationId = dto.ClockLocationId
+            };
+
+            _db.Products.Add(product);
+            
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException saveEx)
+            {
+                return StatusCode(500, new { error = $"Failed to save product: {saveEx.Message}", type = saveEx.GetType().Name, innerException = saveEx.InnerException?.Message });
+            }
+
+            // Reload product with related entities for the response
+            Product? createdProduct;
+            try
+            {
+                createdProduct = await _db.Products
+                    .AsNoTracking()
+                    .Include(p => p.Species)
+                    .Include(p => p.ClockLocation)
+                    .FirstOrDefaultAsync(p => p.Id == product.Id);
+            }
+            catch (Exception reloadEx)
+            {
+                return StatusCode(500, new { error = $"Failed to reload product: {reloadEx.Message}", type = reloadEx.GetType().Name });
+            }
+
+            if (createdProduct == null)
+            {
+                return StatusCode(500, new { error = "Failed to retrieve created product." });
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, createdProduct);
+        }
+        catch (DbUpdateException dbEx)
+        {
+            return StatusCode(500, new { error = $"Database error: {dbEx.Message}", type = dbEx.GetType().Name, innerException = dbEx.InnerException?.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name, stackTrace = ex.StackTrace });
+        }
     }
 
     // PUT /products/{id}
@@ -193,7 +235,6 @@ public class ProductController : Controller
 
 public class CreateProductDto
 {
-    public Guid SupplierId { get; set; }
     public Guid SpeciesId { get; set; }
     public string PotSize { get; set; } = string.Empty;
     public int StemLength { get; set; }
