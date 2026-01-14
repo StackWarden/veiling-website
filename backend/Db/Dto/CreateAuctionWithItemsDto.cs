@@ -12,5 +12,6 @@ namespace backend.Dtos
         public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = "Scheduled";
         public List<Guid> ProductIds { get; set; } = new();
+        public Guid? ClockLocationId { get; set; }
     }
 }

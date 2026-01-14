@@ -39,11 +39,14 @@ export default function List<T extends Record<string, unknown>>({
         <table className="w-full border-collapse text-left">
           <thead className="bg-white">
             <tr className="text-[#4D4D4D]">
-              {headers.map((h) => (
-                <th key={h.key} className={`p-3 text-${h.align ?? "start"}`}>
-                  {h.label}
-                </th>
-              ))}
+              {headers.map((h) => {
+                const alignClass = h.align === "end" ? "text-right" : h.align === "center" ? "text-center" : "text-left";
+                return (
+                  <th key={h.key} className={`p-3 ${alignClass}`}>
+                    {h.label}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 
@@ -54,21 +57,17 @@ export default function List<T extends Record<string, unknown>>({
                 className="hover:bg-[#162218] hover:text-white transition cursor-pointer"
                 onClick={() => onRowClick?.(row)}
               >
-                {headers.map((h) => (
-                  <td
-                    key={h.key}
-                    className={`p-4 text-${h.align ?? "left"}`}
-                  >
-                    {row[h.key] as ReactNode}
-                  </td>
-                ))}
-
-                {(() => {
-                  const actions = row.actions;
-                  return actions ? (
-                    <td className="p-4 text-end">{actions as ReactNode}</td>
-                  ) : null;
-                })()}
+                {headers.map((h) => {
+                  const alignClass = h.align === "end" ? "text-right" : h.align === "center" ? "text-center" : "text-left";
+                  return (
+                    <td
+                      key={h.key}
+                      className={`p-4 ${alignClass}`}
+                    >
+                      {row[h.key] as ReactNode}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

@@ -66,8 +66,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("jwt", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
+            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
             Expires = DateTimeOffset.UtcNow.AddMinutes(30),
             Path = "/"
         });
@@ -87,8 +87,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("jwt", string.Empty, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Strict,
+            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
             Path = "/"
         });
@@ -116,6 +116,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
+            id = user.Id.ToString(),
             name = user.Name,
             role = role
         });

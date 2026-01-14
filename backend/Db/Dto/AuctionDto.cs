@@ -9,6 +9,8 @@ namespace backend.Dtos
         public DateOnly AuctionDate { get; set; }
         public TimeOnly? AuctionTime { get; set; }
         public string Status { get; set; } = string.Empty;
+        public Guid? ClockLocationId { get; set; }
+        public string? ClockLocationName { get; set; }
         public List<AuctionItemDto> Items { get; set; } = new();
     }
 }

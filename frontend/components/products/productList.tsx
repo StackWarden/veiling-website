@@ -65,8 +65,8 @@ export default function ProductList() {
     { key: "price", label: "Price (€)", align: "center" },
   ];
 
-  // Conditionally add Actions header for suppliers
-  if (role === "supplier") {
+  // Conditionally add Actions header for suppliers and admins
+  if (role === "supplier" || role === "admin") {
     headers.push({ key: "actions", label: "Actions", align: "end" });
   }
 
@@ -106,9 +106,9 @@ export default function ProductList() {
                 quantity: p.quantity,
                 price: `€${p.minPrice.toFixed(2)}`,
               };
-              if (role === "supplier") {
+              if (role === "supplier" || role === "admin") {
                 row.actions = (
-                  <RoleGate allow={["supplier"]}>
+                  <RoleGate allow={["supplier", "admin"]}>
                     <div className="flex gap-6 justify-end">
                       <Link
                         href={`/products/edit/${p.id}`}

@@ -60,6 +60,11 @@ namespace backend.Controllers
         [Authorize(Roles = "auctioneer,admin")]
         public IActionResult CreateAuction([FromBody] CreateAuctionWithItemsDto dto)
         {
+            if (dto == null)
+            {
+                return BadRequest("Request body is required.");
+            }
+
             try
             {
                 var createdAuction = _auctionService.CreateAuction(dto);
@@ -70,6 +75,10 @@ namespace backend.Controllers
             {
                 // Ongeldige input (bijv. eindtijd voor starttijd of product bestaat niet)
                 return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name });
             }
         }
 
