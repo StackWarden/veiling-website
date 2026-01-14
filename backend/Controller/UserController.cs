@@ -43,4 +43,40 @@ public class UserController : ControllerBase
         // Geen ingewikkelde DTO's of filters, gewoon de basics.
         return Ok(users);
     }
+
+    [HttpPost("{id}/roles")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> SetUserRole(Guid id, [FromBody] string newRole)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound("User not found.");
+
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        if (currentRoles.Contains(newRole))
+            return BadRequest("User already has this role.");
+
+        var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+        if (!removeResult.Succeeded)
+            return BadRequest(removeResult.Errors.Select(e => e.Description));
+
+        var addResult = await _userManager.AddToRoleAsync(user, newRole);
+        if (!addResult.Succeeded)
+            return BadRequest(addResult.Errors.Select(e => e.Description));
+
+        return Ok($"User {user.Email} now has the role '{newRole}' (previous roles removed).");
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var user = await _userManager.FindByIdAsync(id.ToString());
+        if (user == null) return NotFound("User not found.");
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        return Ok($"User {user.Email} deleted.");
+    }
 }

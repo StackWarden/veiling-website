@@ -107,9 +107,19 @@ export default function PostAuction() {
 
   /* ---------- Effects ---------- */
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+ useEffect(() => {
+  async function load() {
+    try {
+      await fetchProducts();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
 
   /* ---------- UI ---------- */
 

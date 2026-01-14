@@ -29,6 +29,7 @@ export default function AuctionsDashboard() {
     route: "/auctions",
     autoFetch: false,
     onSuccess: (data) => {
+      console.log(data);
       const formatted = (Array.isArray(data) ? data : []).map(a => ({
         ...a,
         description: a.description || "-",
@@ -80,12 +81,15 @@ export default function AuctionsDashboard() {
               { key: "endTime", label: "End Date", align: "center" },
               { key: "status", label: "Status", align: "end" },
             ]}
-            rows={auctions.map(a => ({
-              ...a,
+            rows={auctions.map(auction => ({
+              ...auction,
               actions: (
                 <RoleGate allow={["auctioneer"]}>
                   <p
-                    onClick={() => handleDelete(a.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(auction.id);
+                    }}
                     className="hover:cursor-pointer hover:underline underline-offset-2 text-red-600 hover:text-red-400"
                   >
                     Delete
@@ -93,6 +97,9 @@ export default function AuctionsDashboard() {
                 </RoleGate>
               )
             }))}
+            onRowClick={(auction) => {
+              window.location.href = `/auctions/auction/${auction.id}`;
+            }}
             rowKey="id"
           />
         )}

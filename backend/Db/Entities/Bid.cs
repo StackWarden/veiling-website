@@ -3,9 +3,16 @@ namespace backend.Db.Entities;
 public class Bid
 {
     public Guid Id { get; set; }
-    public string AuctionneerId { get; set; } = string.Empty;
-    public string BuyerId { get; set; } = string.Empty;
-    public string IndividualPrice { get; set; } = string.Empty;
-    public string Quantity { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public Guid AuctionId { get; set; }
+    public Guid AuctionItemId { get; set; }
+
+    public Guid BuyerId { get; set; }
+
+    // prijs per stuk op het moment van bieden
+    public decimal Price { get; set; }
+
+    public int Quantity { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
