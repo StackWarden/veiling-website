@@ -2,6 +2,7 @@ namespace backend.Db;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using backend.Db.Entities;
 
 public static class DatabaseSeeder
@@ -13,7 +14,132 @@ public static class DatabaseSeeder
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
-        await db.Database.EnsureCreatedAsync();
+        // Apply pending migrations to ensure database schema is up to date
+        // Handle case where database was created with EnsureCreated (no migration history)
+        bool hasMigrationHistory = false;
+        bool shouldRunMigrations = false;
+        
+        try
+        {
+            if (await db.Database.CanConnectAsync())
+            {
+                // First check if migration history table exists using raw SQL
+                try
+                {
+                    var connection = db.Database.GetDbConnection();
+                    await connection.OpenAsync();
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '__EFMigrationsHistory'";
+                    var historyTableCount = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    hasMigrationHistory = historyTableCount > 0;
+                    await connection.CloseAsync();
+                    
+                    if (hasMigrationHistory)
+                    {
+                        // Migration history exists - check for pending migrations
+                        var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
+                        var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+                        
+                        shouldRunMigrations = pendingMigrations.Any();
+                        
+                        if (shouldRunMigrations)
+                        {
+                            Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
+                            await db.Database.MigrateAsync();
+                        }
+                        else
+                        {
+                            Console.WriteLine("All migrations already applied");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("No migration history table found - database was created with EnsureCreated");
+                    }
+                }
+                catch (Exception historyCheckEx)
+                {
+                    // Error checking migration history - assume no history
+                    hasMigrationHistory = false;
+                    shouldRunMigrations = false;
+                    Console.WriteLine($"Could not check migration history: {historyCheckEx.Message}");
+                    Console.WriteLine("Assuming database was created with EnsureCreated");
+                }
+                
+                // If no migration history, manually create ClockLocations table if needed
+                if (!hasMigrationHistory)
+                {
+                    Console.WriteLine("Manually creating ClockLocations table if needed...");
+                    try
+                    {
+                        // Check if ClockLocations table exists
+                        var tableExists = await db.Database.ExecuteSqlRawAsync(
+                            "SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'ClockLocations') THEN 1 ELSE 0 END"
+                        );
+                        
+                        // Use a simpler approach - try to create, ignore if exists
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(@"
+                                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'ClockLocations')
+                                CREATE TABLE [ClockLocations] (
+                                    [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+                                    [Name] nvarchar(200) NOT NULL,
+                                    [CreatedAt] datetime2 NOT NULL
+                                );
+                            ");
+                            Console.WriteLine("ClockLocations table created");
+                        }
+                        catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714)
+                        {
+                            // Table already exists - that's fine
+                            Console.WriteLine("ClockLocations table already exists");
+                        }
+                        
+                        // Check and add ClockLocationId column to Auctions
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(@"
+                                IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Auctions' AND COLUMN_NAME = 'ClockLocationId')
+                                BEGIN
+                                    ALTER TABLE [Auctions] ADD [ClockLocationId] uniqueidentifier NULL;
+                                    CREATE INDEX [IX_Auctions_ClockLocationId] ON [Auctions] ([ClockLocationId]);
+                                    ALTER TABLE [Auctions] ADD CONSTRAINT [FK_Auctions_ClockLocations_ClockLocationId] 
+                                        FOREIGN KEY ([ClockLocationId]) REFERENCES [ClockLocations] ([Id]) ON DELETE SET NULL;
+                                END
+                            ");
+                            Console.WriteLine("ClockLocationId column added to Auctions table");
+                        }
+                        catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714 || sqlEx.Number == 1913)
+                        {
+                            // Column/index/constraint already exists - that's fine
+                            Console.WriteLine("ClockLocationId column/index already exists");
+                        }
+                    }
+                    catch (Exception createEx)
+                    {
+                        Console.WriteLine($"Warning: Could not create ClockLocations table manually: {createEx.Message}");
+                        // Continue anyway - table might already exist
+                    }
+                }
+            }
+            else
+            {
+                // Database doesn't exist, create it with migrations
+                Console.WriteLine("Database doesn't exist - creating with migrations");
+                await db.Database.MigrateAsync();
+            }
+        }
+        catch (Microsoft.Data.SqlClient.SqlException sqlEx) when (sqlEx.Number == 2714 || sqlEx.Number == 1750 || sqlEx.Number == 1913)
+        {
+            // Table/constraint/index already exists - skip migration
+            Console.WriteLine($"Migration skipped - database objects already exist (SQL error {sqlEx.Number})");
+        }
+        catch (Exception ex)
+        {
+            // Log but continue - don't crash the app
+            Console.WriteLine($"Migration warning (app will continue): {ex.GetType().Name} - {ex.Message}");
+        }
 
         // ---- Seed Roles ----
         string[] roles = { "buyer", "supplier", "auctioneer", "admin" };
@@ -67,6 +193,30 @@ public static class DatabaseSeeder
 
             await userManager.CreateAsync(s2, "pepernoot");
             await userManager.AddToRoleAsync(s2, "supplier");
+        }
+
+        // ---- Seed Clock Locations ----
+        if (!await db.ClockLocations.AnyAsync())
+        {
+            db.ClockLocations.AddRange(
+                new ClockLocation
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "clock 1"
+                },
+                new ClockLocation
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "clock 2"
+                },
+                new ClockLocation
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "clock 3"
+                }
+            );
+
+            await db.SaveChangesAsync();
         }
 
         // ---- Seed Species ----

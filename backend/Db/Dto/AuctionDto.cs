@@ -11,6 +11,8 @@ namespace backend.Dtos
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public string Status { get; set; } = string.Empty;
+        public Guid? ClockLocationId { get; set; }
+        public string? ClockLocationName { get; set; }
         public List<AuctionItemDto> Items { get; set; } = new();
     }
 }

@@ -22,16 +22,24 @@ type Product = {
   photoUrl?: string | null;
 };
 
+type ClockLocation = {
+  id: string;
+  name: string;
+};
+
 interface Auction {
+  auctionneerId: string;
   description: string;
   startTime: string;
   endTime: string;
   productIds: string[];
+  clockLocationId?: string | null;
 }
 /* ---------- Component ---------- */
 
 export default function PostAuction() {
   const router = useRouter();
+  const [userId, setUserId] = useState<string>("");
 
   const {
     loading: postLoading,
@@ -48,8 +56,10 @@ export default function PostAuction() {
   });
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [clockLocations, setClockLocations] = useState<ClockLocation[]>([]);
 
   const handleProductsLoaded = useCallback((data: Product[]) => setProducts(data), []);
+  const handleClockLocationsLoaded = useCallback((data: ClockLocation[]) => setClockLocations(data), []);
 
   const { loading: getLoading, execute: fetchProducts } = useGet<Product>({
     route: "/products",
@@ -57,20 +67,28 @@ export default function PostAuction() {
     onSuccess: handleProductsLoaded,
   });
 
+  const { loading: clockLocationsLoading, execute: fetchClockLocations } = useGet<ClockLocation>({
+    route: "/clock-locations",
+    autoFetch: false,
+    onSuccess: handleClockLocationsLoaded,
+  });
+
   const [auction, setAuction] = useState<Auction>({
+    auctionneerId: "",
     description: "",
     startTime: new Date().toISOString(),
     endTime: new Date(
       Date.now() + 7 * 24 * 60 * 60 * 1000
     ).toISOString(),
     productIds: [],
+    clockLocationId: null,
   });
 
   /* ---------- Helpers ---------- */
 
   const handleChange = (
     key: keyof Auction,
-    value: string | string[]
+    value: string | string[] | null
   ) => {
     setAuction((prev) => ({ ...prev, [key]: value }));
   };
@@ -102,23 +120,42 @@ export default function PostAuction() {
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
-    await createAuction(auction);
+    if (!auction.auctionneerId) {
+      alert("Please wait for user information to load.");
+      return;
+    }
+    // Convert clockLocationId to null if empty string
+    const payload = {
+      ...auction,
+      clockLocationId: auction.clockLocationId || null,
+    };
+    await createAuction(payload);
   };
 
   /* ---------- Effects ---------- */
 
- useEffect(() => {
-  async function load() {
-    try {
-      await fetchProducts();
-    } catch (e) {
-      console.error(e);
+  useEffect(() => {
+    async function load() {
+      try {
+        // Fetch user info to get ID
+        const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/info`, {
+          credentials: "include",
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUserId(userData.id);
+          setAuction((prev) => ({ ...prev, auctionneerId: userData.id }));
+        }
+        await fetchProducts();
+        await fetchClockLocations();
+      } catch (e) {
+        console.error(e);
+      }
     }
-  }
 
-  load();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  }, []);
 
 
   /* ---------- UI ---------- */
@@ -166,6 +203,30 @@ export default function PostAuction() {
             />
           </div>
         </div>
+
+        {/* Clock Location */}
+        <div className="flex flex-col">
+          <label className="font-semibold">Clock Location (Optional)</label>
+          {clockLocationsLoading ? (
+            <p className="text-gray-500 mt-1">Loading clock locations...</p>
+          ) : (
+            <select
+              value={auction.clockLocationId || ""}
+              onChange={(e) =>
+                handleChange("clockLocationId", e.target.value || null)
+              }
+              className="mt-1 w-full border rounded-lg p-2"
+            >
+              <option value="">None</option>
+              {clockLocations.map((cl) => (
+                <option key={cl.id} value={cl.id}>
+                  {cl.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
 
         {/* Products */}
         <div className="space-y-4">

@@ -48,8 +48,12 @@ export function usePost<TBody extends object, TResult = unknown>({
       setError("");
 
       try {
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}${route}`;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/e43ac945-c26b-4b69-b531-933f97b6806d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'post.tsx:51',message:'Making POST request',data:{apiUrl,route,envVar:process.env.NEXT_PUBLIC_API_URL,origin:window.location.origin},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}${route}`,
+          apiUrl,
           {
             method: "POST",
             credentials: "include",
@@ -57,6 +61,9 @@ export function usePost<TBody extends object, TResult = unknown>({
             body: JSON.stringify(body),
           }
         );
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/e43ac945-c26b-4b69-b531-933f97b6806d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'post.tsx:60',message:'POST response received',data:{status:response.status,statusText:response.statusText,ok:response.ok,headers:Object.fromEntries(response.headers.entries())},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
 
         if (!response.ok) {
           let errorMessage = `POST mislukt: ${response.statusText}`;
@@ -94,6 +101,9 @@ export function usePost<TBody extends object, TResult = unknown>({
         return data;
       } catch (err) {
         const errorObj = err instanceof Error ? err : new Error("Onbekende fout");
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/e43ac945-c26b-4b69-b531-933f97b6806d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'post.tsx:catch',message:'POST request failed',data:{error:errorObj.message,stack:errorObj.stack,name:errorObj.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         setError(errorObj.message);
         if (onError) onError(errorObj);
         return null;
