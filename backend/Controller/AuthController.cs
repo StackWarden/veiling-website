@@ -1,14 +1,12 @@
-using DotNetEnv;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using backend.Db.Entities;
+using backend.Dtos;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 
 namespace backend.Controllers;
 
@@ -238,22 +236,4 @@ public class AuthController : ControllerBase
         };
         return Ok(roles);
     }
-}
-
-// DTO voor registratie: de broodnodige gegevens om een nieuwe gebruiker aan te maken.
-// Geen magie, geen extra velden, gewoon de essentials.
-public class RegisterDto
-{
-    public string Name { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string Password { get; set; } = "";
-    public string Role { get; set; } = "";
-}
-
-// DTO voor login, want blijkbaar wil niemand elke keer zijn hele user-object meesturen.
-// Alleen email en wachtwoord zijn genoeg om toegang te krijgen tot de digitale wereld.
-public class LoginDto
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
 }
