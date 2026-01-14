@@ -12,8 +12,13 @@ export type FormFieldType =
   | "time"
   | "custom";
 
-export type FormField<TValues extends Record<string, any>> = {
-  name: keyof TValues;
+type ValuesShape = Record<string, unknown>;
+
+export type FormField<
+  TValues extends ValuesShape,
+  TName extends keyof TValues = keyof TValues
+> = {
+  name: TName;
   label?: string;
   type: FormFieldType;
 
@@ -25,16 +30,16 @@ export type FormField<TValues extends Record<string, any>> = {
   minHeightClassName?: string;
 
   render?: (args: {
-    value: TValues[keyof TValues];
+    value: TValues[TName];
     values: TValues;
-    setValue: (name: keyof TValues, value: any) => void;
+    setValue: <K extends keyof TValues>(name: K, value: TValues[K]) => void;
   }) => React.ReactNode;
 
-  formatValue?: (value: any, values: TValues) => string;
-  parseValue?: (raw: string, values: TValues) => any;
+  formatValue?: (value: TValues[TName], values: TValues) => string;
+  parseValue?: (raw: string, values: TValues) => TValues[TName];
 };
 
-type FormProps<TValues extends Record<string, any>> = {
+type FormProps<TValues extends ValuesShape> = {
   title?: string;
 
   values: TValues;
@@ -53,8 +58,7 @@ type FormProps<TValues extends Record<string, any>> = {
   className?: string;
 };
 
-/* ---------- Component ---------- */
-export default function Form<TValues extends Record<string, any>>({
+export default function Form<TValues extends ValuesShape>({
   title,
   values,
   setValues,
@@ -66,7 +70,7 @@ export default function Form<TValues extends Record<string, any>>({
   columns = 2,
   className = "",
 }: FormProps<TValues>) {
-  const setValue = (name: keyof TValues, value: any) => {
+  const setValue = <K extends keyof TValues>(name: K, value: TValues[K]) => {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -95,9 +99,12 @@ export default function Form<TValues extends Record<string, any>>({
                   : ""
                 : "";
 
-            const rawValue = values[field.name as string];
+            const rawValue = values[field.name];
             const displayValue =
-              field.formatValue?.(rawValue, values) ?? (rawValue ?? "");
+              field.formatValue?.(
+                rawValue as never,
+                values
+              ) ?? (rawValue ?? "");
 
             if (field.type === "custom") {
               if (!field.render) {
@@ -112,7 +119,7 @@ export default function Form<TValues extends Record<string, any>>({
                     <label className="font-semibold">{field.label}</label>
                   ) : null}
                   {field.render({
-                    value: rawValue,
+                    value: rawValue as never,
                     values,
                     setValue,
                   })}
@@ -133,8 +140,8 @@ export default function Form<TValues extends Record<string, any>>({
                     onChange={(e) => {
                       const parsed = field.parseValue
                         ? field.parseValue(e.target.value, values)
-                        : e.target.value;
-                      setValue(field.name, parsed);
+                        : (e.target.value as unknown as typeof rawValue);
+                      setValue(field.name, parsed as never);
                     }}
                     className={`mt-1 w-full border rounded-lg p-3 ${
                       field.minHeightClassName ?? "min-h-[100px]"
@@ -157,8 +164,8 @@ export default function Form<TValues extends Record<string, any>>({
                   onChange={(e) => {
                     const parsed = field.parseValue
                       ? field.parseValue(e.target.value, values)
-                      : e.target.value;
-                    setValue(field.name, parsed);
+                      : (e.target.value as unknown as typeof rawValue);
+                    setValue(field.name, parsed as never);
                   }}
                   className="mt-1 w-full border rounded-lg p-2"
                 />
