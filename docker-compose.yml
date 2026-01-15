@@ -29,11 +29,6 @@ services:
       - "8080:8080"
     env_file:
       - ./backend/.env
-    environment:
-      - DB_CONNECTION=Server=mssql,1433;Database=VeilingDB;User Id=sa;Password=P@ssword1234!;TrustServerCertificate=True;
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - DOMAIN=http://localhost:8080
-      - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
       mssql:
         condition: service_healthy
