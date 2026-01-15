@@ -5,6 +5,7 @@ using backend.Db.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -12,10 +13,12 @@ namespace backend.Controllers;
 public class ProductController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly PriceHistoryService _priceHistoryService;
 
-    public ProductController(AppDbContext db)
+    public ProductController(AppDbContext db, PriceHistoryService priceHistoryService)
     {
         _db = db;
+        _priceHistoryService = priceHistoryService;
     }
 
     private async Task<bool> ValidateClockLocationAsync(Guid? clockLocationId)
@@ -231,5 +234,13 @@ public class ProductController : Controller
         await _db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpGet("{productId:guid}/price-history")]
+    [Authorize(Roles = "buyer,admin")]
+    public async Task<IActionResult> GetPriceHistory(Guid productId)
+    {
+        var data = await _priceHistoryService.GetPriceHistory(productId);
+        return Ok(data);
     }
 }
