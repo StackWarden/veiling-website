@@ -73,5 +73,11 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany()
             .HasForeignKey(p => p.ClockLocationId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        ModelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(p => p.StartPrice).HasPrecision(18, 2);
+            entity.Property(p => p.MinPrice).HasPrecision(18, 2);
+        });
     }
 }

@@ -10,7 +10,7 @@ public class AuctionItem
     public AuctionItemStatus Status { get; set; } = AuctionItemStatus.Pending;
     public Guid? BuyerId { get; set; }
     public User? Buyer { get; set; }
-
+    public int? SoldAmount { get; set; }
     public decimal? SoldPrice { get; set; }
     public DateTime? SoldAtUtc { get; set; }
 }

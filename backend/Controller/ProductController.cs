@@ -94,24 +94,31 @@ public class ProductController : Controller
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
         if (dto == null)
-        {
             return BadRequest("Request body is required.");
-        }
 
-        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out Guid supplierId))
-        {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var supplierId))
             return Unauthorized("Invalid user id");
-        }
+
+        if (dto.Quantity <= 0)
+            return BadRequest("Quantity must be greater than 0.");
+
+        if (dto.MinPrice <= 0)
+            return BadRequest("MinPrice must be greater than 0.");
+
+        if (dto.StartPrice <= 0)
+            return BadRequest("StartPrice must be greater than 0.");
+
+        if (dto.StartPrice <= dto.MinPrice)
+            return BadRequest("StartPrice must be greater than MinPrice.");
 
         try
         {
             var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
-            var clockLocationValid = await ValidateClockLocationAsync(dto.ClockLocationId);
-
             if (!speciesExists)
                 return BadRequest("Invalid SpeciesId.");
 
+            var clockLocationValid = await ValidateClockLocationAsync(dto.ClockLocationId);
             if (!clockLocationValid)
                 return BadRequest("Invalid ClockLocationId.");
 
@@ -123,51 +130,44 @@ public class ProductController : Controller
                 PotSize = dto.PotSize,
                 StemLength = dto.StemLength,
                 Quantity = dto.Quantity,
+
+                StartPrice = dto.StartPrice,
                 MinPrice = dto.MinPrice,
+
                 PhotoUrl = dto.PhotoUrl,
                 ClockLocationId = dto.ClockLocationId
             };
 
             _db.Products.Add(product);
-            
-            try
-            {
-                await _db.SaveChangesAsync();
-            }
-            catch (DbUpdateException saveEx)
-            {
-                return StatusCode(500, new { error = $"Failed to save product: {saveEx.Message}", type = saveEx.GetType().Name, innerException = saveEx.InnerException?.Message });
-            }
+            await _db.SaveChangesAsync();
 
-            // Reload product with related entities for the response
-            Product? createdProduct;
-            try
-            {
-                createdProduct = await _db.Products
-                    .AsNoTracking()
-                    .Include(p => p.Species)
-                    .Include(p => p.ClockLocation)
-                    .FirstOrDefaultAsync(p => p.Id == product.Id);
-            }
-            catch (Exception reloadEx)
-            {
-                return StatusCode(500, new { error = $"Failed to reload product: {reloadEx.Message}", type = reloadEx.GetType().Name });
-            }
+            var createdProduct = await _db.Products
+                .AsNoTracking()
+                .Include(p => p.Species)
+                .Include(p => p.ClockLocation)
+                .FirstOrDefaultAsync(p => p.Id == product.Id);
 
             if (createdProduct == null)
-            {
                 return StatusCode(500, new { error = "Failed to retrieve created product." });
-            }
 
             return CreatedAtAction(nameof(GetById), new { id = product.Id }, createdProduct);
         }
         catch (DbUpdateException dbEx)
         {
-            return StatusCode(500, new { error = $"Database error: {dbEx.Message}", type = dbEx.GetType().Name, innerException = dbEx.InnerException?.Message });
+            return StatusCode(500, new
+            {
+                error = $"Database error: {dbEx.Message}",
+                type = dbEx.GetType().Name,
+                innerException = dbEx.InnerException?.Message
+            });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name, stackTrace = ex.StackTrace });
+            return StatusCode(500, new
+            {
+                error = ex.Message,
+                type = ex.GetType().Name
+            });
         }
     }
 

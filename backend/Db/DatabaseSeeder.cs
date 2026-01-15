@@ -351,7 +351,7 @@ public static class DatabaseSeeder
             var rosa = await db.Species.FirstAsync(s => s.Title == "Rosa Avalanche");
             var tulipa = await db.Species.FirstAsync(s => s.Title == "Tulipa Red Impression");
 
-            db.Products.AddRange(
+           db.Products.AddRange(
                 new Product
                 {
                     Id = Guid.NewGuid(),
@@ -360,6 +360,7 @@ public static class DatabaseSeeder
                     PotSize = "12cm",
                     StemLength = 50,
                     Quantity = 200,
+                    StartPrice = 0.50m,
                     MinPrice = 0.15m,
                     PhotoUrl = null
                 },
@@ -371,6 +372,7 @@ public static class DatabaseSeeder
                     PotSize = "10cm",
                     StemLength = 40,
                     Quantity = 300,
+                    StartPrice = 0.40m,
                     MinPrice = 0.10m,
                     PhotoUrl = null
                 }

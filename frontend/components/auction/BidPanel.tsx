@@ -1,21 +1,31 @@
-// components/auction/BidPanel.tsx
 "use client";
 
 import { useMemo, useState } from "react";
+import { RoleGate } from "@/components/RoleGate";
 
 type Props = {
   roundLabel: string;
   startingOffer: number;
   currentPrice: number;
+  minPrice: number;
+  showMinPrice: boolean;
   currency?: string;
   onPlaceBid: (quantity: number) => void;
 };
 
 function formatMoney(currency: string, value: number) {
-  return `${currency}${value}`;
+  return `${currency}${value.toFixed(2)}`;
 }
 
-export default function BidPanel({ roundLabel, startingOffer, currentPrice, currency = "€", onPlaceBid }: Props) {
+export default function BidPanel({
+  roundLabel,
+  startingOffer,
+  currentPrice,
+  minPrice,
+  showMinPrice,
+  currency = "€",
+  onPlaceBid,
+}: Props) {
   const [quantity, setQuantity] = useState<string>("");
 
   const progress = useMemo(() => {
@@ -28,8 +38,6 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
     const parsed = Number(quantity);
 
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      console.log("Invalid quantity:", quantity);
-
       return;
     }
 
@@ -52,12 +60,19 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
         </div>
       </div>
 
+      {showMinPrice ? (
+        <div className="mt-3 text-xs text-neutral-600">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Current minimum</div>
+          <div className="mt-1 text-sm font-semibold text-neutral-900">{formatMoney(currency, minPrice)}</div>
+        </div>
+      ) : null}
+
       <div className="mt-3">
         <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
           <div className="h-full rounded-full bg-neutral-900" style={{ width: `${progress}%` }} />
         </div>
       </div>
-
+      <RoleGate allow={["buyer", "admin"]}>
       <div className="mt-4">
         <label className="sr-only" htmlFor="bid-qty">
           Quantity
@@ -75,14 +90,14 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
           required
         />
       </div>
-
-      <button
-        type="button"
-        onClick={submit}
-        className="mt-4 w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 active:bg-neutral-950"
-      >
-        Place your bid!
-      </button>
+        <button
+          type="button"
+          onClick={submit}
+          className="mt-4 w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 active:bg-neutral-950"
+        >
+          Place your bid!
+        </button>
+      </RoleGate>
     </div>
   );
 }

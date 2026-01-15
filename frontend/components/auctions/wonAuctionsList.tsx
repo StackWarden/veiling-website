@@ -4,54 +4,64 @@ import { useEffect, useState } from "react";
 import useGet from "@/components/api/get";
 import List, { ListHeader } from "@/components/list";
 
-type Auction = {
-  id: string;
-  description: string;
+type WonAuctionItem = {
+  auctionItemId: string;
+  auctionId: string;
+  auctionDescription: string;
   auctionDate: string;
   auctionTime: string | null;
-  status: string;
-  clockLocationName?: string | null;
+  productId: string;
+  productSpecies: string;
+  soldAmount: number;
+  soldPrice: number;
+  pricePerUnit: number;
+  soldAtUtc: string | null;
 };
 
 export default function WonAuctionsDashboard() {
-  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [items, setItems] = useState<WonAuctionItem[]>([]);
 
-  const { loading, execute: fetchAuctions } = useGet<Auction>({
+  const { loading, execute: fetchItems } = useGet<WonAuctionItem>({
     route: "/auctions/won",
     autoFetch: false,
     onSuccess: (data) => {
-      const formatted = (Array.isArray(data) ? data : []).map((a) => {
-        const dateLabel = a.auctionDate
-          ? new Date(a.auctionDate).toLocaleDateString()
+      const formatted = (Array.isArray(data) ? data : []).map((item) => {
+        const dateLabel = item.auctionDate
+          ? new Date(item.auctionDate).toLocaleDateString()
           : "-";
 
-        const timeLabel = a.auctionTime ? a.auctionTime : "No time known";
+        const timeLabel = item.auctionTime ? item.auctionTime : "-";
+
+        const pricePerUnitFormatted = `€${item.pricePerUnit.toFixed(2)}`;
+        const totalPriceFormatted = `€${item.soldPrice.toFixed(2)}`;
 
         return {
-          ...a,
-          description: a.description || "-",
+          ...item,
+          auctionDescription: item.auctionDescription || "-",
           auctionDate: dateLabel,
           auctionTime: timeLabel,
-          status: a.status || "-",
-          clock: a.clockLocationName || "-",
+          pricePerUnitFormatted,
+          totalPriceFormatted,
         };
       });
 
-      setAuctions(formatted);
+      setItems(formatted);
     },
   });
 
   useEffect(() => {
-    fetchAuctions();
+    fetchItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const headers: ListHeader[] = [
-    { key: "description", label: "Description", align: "start" },
+    { key: "productSpecies", label: "Product", align: "start" },
+    { key: "auctionDescription", label: "Auction", align: "start" },
     { key: "auctionDate", label: "Auction Date", align: "center" },
     { key: "auctionTime", label: "Time", align: "center" },
-    { key: "status", label: "Status", align: "center" },
-    { key: "clock", label: "Clock Location", align: "center" },
+    { key: "soldAmount", label: "Amount", align: "center" },
+    { key: "pricePerUnitFormatted", label: "Price per Unit", align: "end" },
+    { key: "totalPriceFormatted", label: "Total Price", align: "end" },
   ];
 
   return (
@@ -66,25 +76,25 @@ export default function WonAuctionsDashboard() {
         </div>
 
         {loading && (
-          <p className="text-gray-500 text-center py-6">Loading auctions...</p>
+          <p className="text-gray-500 text-center py-6">Loading won items...</p>
         )}
 
-        {!loading && auctions.length === 0 && (
+        {!loading && items.length === 0 && (
           <p className="text-gray-500 text-center py-6">
-            You haven&apos;t won any auctions yet.
+            You haven&apos;t won any auction items yet.
           </p>
         )}
 
-        {!loading && auctions.length > 0 && (
+        {!loading && items.length > 0 && (
           <List
             headers={headers}
-            rows={auctions.map((auction) => ({
-              ...auction,
+            rows={items.map((item) => ({
+              ...item,
             }))}
-            onRowClick={(auction) => {
-              window.location.href = `/auctions/auction/${auction.id}`;
+            onRowClick={(item) => {
+              window.location.href = `/auctions/auction/${item.auctionId}`;
             }}
-            rowKey="id"
+            rowKey="auctionItemId"
           />
         )}
       </div>

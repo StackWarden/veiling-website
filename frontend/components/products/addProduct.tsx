@@ -22,6 +22,7 @@ type CreateProductPayload = {
   stemLength: number;
   quantity: number;
   minPrice: number;
+  startPrice: number;
   photoUrl?: string | null;
   clockLocationId?: string | null;
 };
@@ -35,6 +36,7 @@ export default function AddProduct() {
   const [stemLength, setStemLength] = useState("");
   const [quantity, setQuantity] = useState("");
   const [minPrice, setMinPrice] = useState("");
+  const [startPrice, setStartPrice] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [success, setSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -71,6 +73,15 @@ export default function AddProduct() {
     if (!speciesId) return;
 
     const potSize = `${potHeight}mm x ${potDiameter}mm`;
+    const sp = Number(startPrice);
+    const mp = Number(minPrice);
+
+    if (!Number.isFinite(sp) || !Number.isFinite(mp)) return;
+
+    if (sp <= mp) {
+      alert("Start price must be greater than minimum price.");
+      return;
+    }
 
     let photoUrl: string | null = null;
 
@@ -113,6 +124,7 @@ export default function AddProduct() {
       stemLength: Number(stemLength),
       quantity: Number(quantity),
       minPrice: Number(minPrice),
+      startPrice: Number(startPrice),
       photoUrl,
       clockLocationId: clockLocationId || null,
     });
@@ -165,6 +177,17 @@ export default function AddProduct() {
                 type="number"
                 value={stemLength}
                 onChange={(e) => setStemLength(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg p-3"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-semibold">Start Price (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={startPrice}
+                onChange={(e) => setStartPrice(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required
               />
