@@ -92,6 +92,18 @@ export default function Header() {
                         >
                             Auctions
                         </a>
+                        <RoleGate allow={["buyer", "admin"]}>
+                            <a
+                                href="/won-auctions"
+                                className={
+                                    isActive("/won-auctions")
+                                        ? "underline underline-offset-4"
+                                        : "hover:text-gray-600 transition"
+                                }
+                            >
+                                Won Auctions
+                            </a>
+                        </RoleGate>
                         <RoleGate allow={["admin"]}>
                             <a
                                 href="/species"
