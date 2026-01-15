@@ -32,15 +32,35 @@ public class ProductController : Controller
     }
 
     // GET /products
-    [Authorize(Roles = "admin,supplier,auctioneer")]
+    [Authorize(Roles = "admin,supplier,auctioneer,buyer")]
     [HttpGet("")]
     public async Task<IActionResult> Index([FromQuery] Guid? clockLocationId)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid userId))
+        {
+            return Unauthorized("Invalid user id");
+        }
+
+        var isAdmin = User.IsInRole("admin");
+        var isSupplier = User.IsInRole("supplier");
+        var isBuyer = User.IsInRole("buyer");
+
         var query = _db.Products
             .AsNoTracking()
             .Include(p => p.Species)
             .Include(p => p.ClockLocation)
             .AsQueryable();
+
+        // Filter by role
+        if (isSupplier && !isAdmin)
+        {
+            query = query.Where(p => p.SupplierId == userId);
+        }
+        else if (isBuyer && !isAdmin)
+        {
+            query = query.Where(p => p.AuctionItems.Any(ai => ai.BuyerId == userId));
+        }
 
         if (clockLocationId.HasValue)
         {

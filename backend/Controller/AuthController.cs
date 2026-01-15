@@ -64,17 +64,26 @@ public class AuthController : ControllerBase
         var token = await GenerateJwtTokenAsync(user.Id.ToString());
         var cookieDomain = GetCookieDomainFromEnv();
         var secure = IsHttpsFromClient();
-        var sameSite = SameSiteMode.None;
-
-        Response.Cookies.Append("jwt", token, new CookieOptions
+        // For localhost
+        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
+        
+        // For localhost
+        var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = secure,
             SameSite = sameSite,
-            Domain = cookieDomain,
             Expires = DateTimeOffset.UtcNow.AddMinutes(60),
             Path = "/"
-        });
+        };
+        
+        // For localhost
+        if (!string.IsNullOrEmpty(cookieDomain))
+        {
+            cookieOptions.Domain = cookieDomain;
+        }
+
+        Response.Cookies.Append("jwt", token, cookieOptions);
 
         return Ok(new { message = "Login successful", token });
     }
@@ -90,17 +99,26 @@ public class AuthController : ControllerBase
 
         var cookieDomain = GetCookieDomainFromEnv();
         var secure = IsHttpsFromClient();
-        var sameSite = SameSiteMode.None;
-
-        Response.Cookies.Append("jwt", string.Empty, new CookieOptions
+        // For localhost
+        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
+        
+        // For localhost
+        var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = secure,
             SameSite = sameSite,
-            Domain = cookieDomain,
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
             Path = "/"
-        });
+        };
+        
+        // For localhost
+        if (!string.IsNullOrEmpty(cookieDomain))
+        {
+            cookieOptions.Domain = cookieDomain;
+        }
+
+        Response.Cookies.Append("jwt", string.Empty, cookieOptions);
 
         return Ok(new { message = "Logout successful" });
     }
@@ -251,6 +269,12 @@ public class AuthController : ControllerBase
         var domain = Environment.GetEnvironmentVariable("DOMAIN") ?? "";
         domain = domain.Trim();
 
+        // localhost?
+        if (string.IsNullOrEmpty(domain) || domain.Contains("localhost") || domain == "127.0.0.1")
+        {
+            return "";
+        }
+
         if (domain.Contains("://"))
         {
             domain = new Uri(domain).Host;
@@ -260,9 +284,11 @@ public class AuthController : ControllerBase
         if (parts.Length >= 2)
         {
             domain = $"{parts[^2]}.{parts[^1]}";
+            return "." + domain;
         }
 
-        return "." + domain;
+        // localllllhooooooooost
+        return "";
     }
 
     private bool IsHttpsFromClient()
