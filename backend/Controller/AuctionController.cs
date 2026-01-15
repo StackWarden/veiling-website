@@ -37,6 +37,21 @@ namespace backend.Controllers
             return Ok(auctions);
         }
 
+        // GET: /auctions/won
+        [HttpGet("won")]
+        [Authorize(Roles = "buyer,admin")]
+        public async Task<IActionResult> GetWonAuctions()
+        {
+            string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdString, out Guid buyerId))
+            {
+                return Unauthorized("Invalid user id");
+            }
+
+            var auctions = await _auctionService.GetAuctionsWonByBuyer(buyerId);
+            return Ok(auctions);
+        }
+
         // GET: /auctions/{id}
         // Haalt één specifieke veiling op via de service. 
         // Geeft 404 als de veiling niet bestaat (wie had dat gedacht).

@@ -308,5 +308,40 @@ namespace backend.Services
                 Items = new List<AuctionItemDto>()
             };
         }
+
+        public async Task<List<AuctionDto>> GetAuctionsWonByBuyer(Guid buyerId)
+        {
+            var auctionIds = await _db.AuctionItems
+                .AsNoTracking()
+                .Where(ai => ai.BuyerId == buyerId)
+                .Select(ai => ai.AuctionId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!auctionIds.Any())
+            {
+                return new List<AuctionDto>();
+            }
+
+            var auctions = await _db.Auctions
+                .AsNoTracking()
+                .Include(a => a.ClockLocation)
+                .Where(a => auctionIds.Contains(a.Id))
+                .ToListAsync();
+
+            var result = auctions.Select(a => new AuctionDto
+            {
+                Id = a.Id,
+                Description = a.Description,
+                AuctionDate = a.AuctionDate,
+                AuctionTime = a.AuctionTime,
+                Status = a.Status,
+                ClockLocationId = a.ClockLocationId,
+                ClockLocationName = a.ClockLocation?.Name,
+                Items = new List<AuctionItemDto>()
+            }).ToList();
+
+            return result;
+        }
     }
 }
