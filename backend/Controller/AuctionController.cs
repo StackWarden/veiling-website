@@ -48,8 +48,8 @@ namespace backend.Controllers
                 return Unauthorized("Invalid user id");
             }
 
-            var auctions = await _auctionService.GetAuctionsWonByBuyer(buyerId);
-            return Ok(auctions);
+            var wonItems = await _auctionService.GetAuctionsWonByBuyer(buyerId);
+            return Ok(wonItems);
         }
 
         // GET: /auctions/{id}
