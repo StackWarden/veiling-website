@@ -8,6 +8,8 @@ RUN dotnet restore
 
 # Copy everything else and build
 COPY . .
+# Ensure .env file is available (even if it might be in .dockerignore, we want it lol)
+COPY .env* ./
 RUN dotnet build -c Release -o /app/build
 
 # PUBLISH
@@ -20,6 +22,10 @@ WORKDIR /app
 
 # Copy published app
 COPY --from=publish /app/publish .
+
+# Copy .env file from build context
+# This allows the app to load .env file at runtime
+COPY --from=build /src/.env* ./
 
 # Expose port
 EXPOSE 8080
