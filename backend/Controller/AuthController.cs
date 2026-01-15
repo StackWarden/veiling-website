@@ -268,7 +268,7 @@ public class AuthController : ControllerBase
     private bool IsHttpsFromClient()
     {
         // If forwarded headers are configured, this will be true for Cloudflare HTTPS
-        return !Request.IsHttps
+        return Request.IsHttps
             || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
     }
 }
