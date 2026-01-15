@@ -309,36 +309,31 @@ namespace backend.Services
             };
         }
 
-        public async Task<List<AuctionDto>> GetAuctionsWonByBuyer(Guid buyerId)
+        public async Task<List<WonAuctionItemDto>> GetAuctionsWonByBuyer(Guid buyerId)
         {
-            var auctionIds = await _db.AuctionItems
+            var wonItems = await _db.AuctionItems
                 .AsNoTracking()
-                .Where(ai => ai.BuyerId == buyerId)
-                .Select(ai => ai.AuctionId)
-                .Distinct()
+                .Where(ai => ai.BuyerId == buyerId && ai.SoldAmount.HasValue && ai.SoldPrice.HasValue)
+                .Include(ai => ai.Auction)
+                .Include(ai => ai.Product)
+                    .ThenInclude(p => p.Species)
                 .ToListAsync();
 
-            if (!auctionIds.Any())
+            var result = wonItems.Select(ai => new WonAuctionItemDto
             {
-                return new List<AuctionDto>();
-            }
-
-            var auctions = await _db.Auctions
-                .AsNoTracking()
-                .Include(a => a.ClockLocation)
-                .Where(a => auctionIds.Contains(a.Id))
-                .ToListAsync();
-
-            var result = auctions.Select(a => new AuctionDto
-            {
-                Id = a.Id,
-                Description = a.Description,
-                AuctionDate = a.AuctionDate,
-                AuctionTime = a.AuctionTime,
-                Status = a.Status,
-                ClockLocationId = a.ClockLocationId,
-                ClockLocationName = a.ClockLocation?.Name,
-                Items = new List<AuctionItemDto>()
+                AuctionItemId = ai.Id,
+                AuctionId = ai.AuctionId,
+                AuctionDescription = ai.Auction.Description,
+                AuctionDate = ai.Auction.AuctionDate,
+                AuctionTime = ai.Auction.AuctionTime,
+                ProductId = ai.ProductId,
+                ProductSpecies = ai.Product.Species.Title,
+                SoldAmount = ai.SoldAmount!.Value,
+                SoldPrice = ai.SoldPrice!.Value,
+                PricePerUnit = ai.SoldAmount!.Value > 0 
+                    ? ai.SoldPrice!.Value / ai.SoldAmount!.Value 
+                    : 0m,
+                SoldAtUtc = ai.SoldAtUtc
             }).ToList();
 
             return result;
