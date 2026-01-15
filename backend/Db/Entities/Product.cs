@@ -11,5 +11,7 @@ public class Product
     public int Quantity { get; set; }
     public decimal MinPrice { get; set; }
     public string? PhotoUrl { get; set; }
+    public Guid? ClockLocationId { get; set; }
+    public ClockLocation? ClockLocation { get; set; }
     public ICollection<AuctionItem> AuctionItems { get; set; } = new List<AuctionItem>();
 }

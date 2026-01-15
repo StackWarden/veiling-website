@@ -11,6 +11,11 @@ type Species = {
   title: string;
 };
 
+type ClockLocation = {
+  id: string;
+  name: string;
+};
+
 type CreateProductPayload = {
   speciesId: string;
   potSize: string;
@@ -18,11 +23,13 @@ type CreateProductPayload = {
   quantity: number;
   minPrice: number;
   photoUrl?: string | null;
+  clockLocationId?: string | null;
 };
 
 export default function AddProduct() {
   /* ---------- State ---------- */
   const [speciesId, setSpeciesId] = useState<string>("");
+  const [clockLocationId, setClockLocationId] = useState<string>("");
   const [potHeight, setPotHeight] = useState("");
   const [potDiameter, setPotDiameter] = useState("");
   const [stemLength, setStemLength] = useState("");
@@ -39,6 +46,15 @@ export default function AddProduct() {
     error: speciesError,
   } = useGet<Species>({
     route: "/species",
+  });
+
+  /* ---------- GET Clock Locations ---------- */
+  const {
+    data: clockLocations,
+    loading: clockLocationsLoading,
+    error: clockLocationsError,
+  } = useGet<ClockLocation>({
+    route: "/clock-locations",
   });
 
   /* ---------- POST Product ---------- */
@@ -98,6 +114,7 @@ export default function AddProduct() {
       quantity: Number(quantity),
       minPrice: Number(minPrice),
       photoUrl,
+      clockLocationId: clockLocationId || null,
     });
   };
 
@@ -113,9 +130,9 @@ export default function AddProduct() {
           </p>
         )}
 
-        {(error || speciesError) && (
+        {(error || speciesError || clockLocationsError) && (
           <p className="text-red-600 font-semibold">
-            {error || speciesError}
+            {error || speciesError || clockLocationsError}
           </p>
         )}
 
@@ -146,6 +163,7 @@ export default function AddProduct() {
               <label className="font-semibold">Stem Length (cm)</label>
               <input
                 type="number"
+                value={stemLength}
                 onChange={(e) => setStemLength(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required
@@ -157,10 +175,29 @@ export default function AddProduct() {
               <input
                 type="number"
                 step="0.01"
+                value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-semibold">Clock Location (Optional)</label>
+              <select
+                value={clockLocationId}
+                onChange={(e) => setClockLocationId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg p-3 bg-white"
+              >
+                <option value="">
+                  {clockLocationsLoading ? "Loading..." : "None"}
+                </option>
+                {clockLocations?.map((cl) => (
+                  <option key={cl.id} value={cl.id}>
+                    {cl.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -171,6 +208,7 @@ export default function AddProduct() {
                 <label className="font-semibold">Pot height (mm)</label>
                 <input
                   type="number"
+                  value={potHeight}
                   onChange={(e) => setPotHeight(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-3"
                   required
@@ -181,6 +219,7 @@ export default function AddProduct() {
                 <label className="font-semibold">Pot diameter (mm)</label>
                 <input
                   type="number"
+                  value={potDiameter}
                   onChange={(e) => setPotDiameter(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-3"
                   required
@@ -192,6 +231,7 @@ export default function AddProduct() {
               <label className="font-semibold">Quantity</label>
               <input
                 type="number"
+                value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg p-3"
                 required

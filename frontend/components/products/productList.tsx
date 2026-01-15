@@ -17,6 +17,11 @@ type Species = {
   title: string;
 };
 
+type ClockLocation = {
+  id: string;
+  name: string;
+};
+
 type Product = {
   id: string;
   supplierId: string;
@@ -26,6 +31,8 @@ type Product = {
   quantity: number;
   minPrice: number;
   photoUrl?: string | null;
+  clockLocationId?: string | null;
+  clockLocation?: ClockLocation | null;
 };
 
 /* ---------- Component ---------- */
@@ -63,6 +70,7 @@ export default function ProductList() {
     { key: "supplier", label: "Supplier", align: "start" },
     { key: "quantity", label: "Quantity", align: "center" },
     { key: "price", label: "Price (€)", align: "center" },
+    { key: "clockLocation", label: "Clock Location", align: "start" },
   ];
 
   // Conditionally add Actions header for suppliers and admins
@@ -105,6 +113,7 @@ export default function ProductList() {
                 supplier: <SupplierName supplierId={p.supplierId} />,
                 quantity: p.quantity,
                 price: `€${p.minPrice.toFixed(2)}`,
+                clockLocation: p.clockLocation?.name || "None",
               };
               if (role === "supplier" || role === "admin") {
                 row.actions = (

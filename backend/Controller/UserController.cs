@@ -34,15 +34,17 @@ public class UserController : ControllerBase
     // ook al hebben we 'm eigenlijk al als class property (want waarom niet).
     [HttpGet("")]
     [Authorize(Roles = "admin")]
-    public IActionResult Index([FromServices] UserManager<User> userManager)
+    public async Task<IActionResult> Index()
     {
-        var users = userManager.Users.Select(u => new
-        {
-            u.Id,
-            u.Name,
-            u.Email,
-            u.CreatedAt
-        });
+        var users = await _userManager.Users
+            .Select(u => new
+            {
+                u.Id,
+                u.Name,
+                u.Email,
+                u.CreatedAt
+            })
+            .ToListAsync();
 
         // Geen ingewikkelde DTO's of filters, gewoon de basics.
         return Ok(users);
@@ -115,7 +117,10 @@ public class UserController : ControllerBase
         if (user == null) return NotFound();
 
         // producten verwijderen met SupplierId == userId
-        var products = await _db.Products.Where(p => p.SupplierId == id).ToListAsync();
+        var products = await _db.Products
+            .AsNoTracking()
+            .Where(p => p.SupplierId == id)
+            .ToListAsync();
 
 
         if (products.Count > 0)

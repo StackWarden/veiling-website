@@ -2,6 +2,7 @@ using backend.Db;
 using backend.Db.Entities;
 using backend.Dtos;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 
 namespace backend.Services
@@ -21,12 +22,13 @@ namespace backend.Services
         }
 
         // Haalt alle veilingen op uit de database (simpele zaak, geen poespas).
-        public List<AuctionDto> GetAllAuctions()
+        public async Task<List<AuctionDto>> GetAllAuctions()
         {
             // Map de Auction entiteiten naar AuctionDto's (zodat we niet per ongeluk te veel info lekken).
-            var auctions = _db.Auctions
+            var auctions = await _db.Auctions
+                .AsNoTracking()
                 .Include(a => a.ClockLocation)
-                .ToList();
+                .ToListAsync();
             var result = auctions.Select(a => new AuctionDto
             {
                 Id = a.Id,
@@ -44,11 +46,12 @@ namespace backend.Services
 
         // Haalt één veiling op op basis van ID.
         // Retourneert null als deze niet bestaat (de controller maakt er dan een NotFound van).
-        public AuctionDto? GetAuctionById(Guid id)
+        public async Task<AuctionDto?> GetAuctionById(Guid id)
         {
-            var auction = _db.Auctions
+            var auction = await _db.Auctions
+                .AsNoTracking()
                 .Include(a => a.ClockLocation)
-                .FirstOrDefault(a => a.Id == id);
+                .FirstOrDefaultAsync(a => a.Id == id);
             if (auction == null) return null;
 
             return new AuctionDto
@@ -68,7 +71,7 @@ namespace backend.Services
         // Controleert of de tijden geldig zijn (tijdreizen is nog steeds niet mogelijk in EF Core).
         // Controleert daarna of alle meegegeven producten bestaan (we verkopen geen spookproducten).
         // Voegt de veiling en items toe aan de database en geeft de nieuwe veiling (met items) terug.
-        public AuctionDto CreateAuction(CreateAuctionWithItemsDto dto)
+        public async Task<AuctionDto> CreateAuction(CreateAuctionWithItemsDto dto)
         {
             if (dto == null)
             {
@@ -80,14 +83,43 @@ namespace backend.Services
                 throw new ArgumentException("Auction date cannot be in the past.");
             }
 
+            if (!dto.ClockLocationId.HasValue)
+            {
+                throw new ArgumentException("Clock location is required for auctions.");
+            }
+
+            var clockLocationExists = await _db.ClockLocations
+                .AsNoTracking()
+                .AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
+            if (!clockLocationExists)
+            {
+                throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+            }
+
             var productIds = dto.ProductIds ?? new List<Guid>();
 
-            // Validate clock location if provided
-            if (dto.ClockLocationId.HasValue)
+            // Batch validate all products at once
+            if (productIds.Any())
             {
-                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                var products = await _db.Products
+                    .AsNoTracking()
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+
+                var foundProductIds = products.Select(p => p.Id).ToHashSet();
+                var missingProducts = productIds.Where(id => !foundProductIds.Contains(id)).ToList();
+                if (missingProducts.Any())
                 {
-                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                    throw new ArgumentException($"Products do not exist: {string.Join(", ", missingProducts)}");
+                }
+
+                var invalidProducts = products.Where(p => 
+                    !p.ClockLocationId.HasValue || 
+                    p.ClockLocationId.Value != dto.ClockLocationId.Value).ToList();
+                if (invalidProducts.Any())
+                {
+                    var invalidIds = string.Join(", ", invalidProducts.Select(p => p.Id));
+                    throw new ArgumentException($"Products {invalidIds} do not have the correct clock location assigned.");
                 }
             }
 
@@ -103,14 +135,10 @@ namespace backend.Services
             };
 
             _db.Auctions.Add(auction);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             foreach (var productId in productIds)
             {
-                if (!_db.Products.Any(p => p.Id == productId))
-                {
-                    throw new ArgumentException($"Product {productId} does not exist.");
-                }
 
                 var auctionItem = new AuctionItem
                 {
@@ -123,14 +151,16 @@ namespace backend.Services
                 _db.AuctionItems.Add(auctionItem);
             }
 
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             // Reload auction with clock location
-            var createdAuction = _db.Auctions
+            var createdAuction = await _db.Auctions
+                .AsNoTracking()
                 .Include(a => a.ClockLocation)
-                .FirstOrDefault(a => a.Id == auction.Id);
+                .FirstOrDefaultAsync(a => a.Id == auction.Id);
 
-            var items = _db.AuctionItems
+            var items = await _db.AuctionItems
+                .AsNoTracking()
                 .Where(ai => ai.AuctionId == auction.Id)
                 .Select(ai => new AuctionItemDto
                 {
@@ -138,7 +168,7 @@ namespace backend.Services
                     ProductId = ai.ProductId,
                     Status = ai.Status.ToString()
                 })
-                .ToList();
+                .ToListAsync();
 
             return new AuctionDto
             {
@@ -156,17 +186,23 @@ namespace backend.Services
         // Werkt een bestaande veiling bij met nieuwe gegevens.
         // Gooit een exceptie als de veiling niet bestaat (we kunnen niks updaten wat er niet is).
         // Gooit ook een exceptie als de eindtijd vóór de starttijd ligt (nice try, maar nee).
-        public string UpdateAuction(Guid id, CreateAuctionWithItemsDto dto)
+        public async Task<string> UpdateAuction(Guid id, CreateAuctionWithItemsDto dto, Guid userId, bool isAdmin)
         {
-            var auction = _db.Auctions.Find(id);
+            if (dto == null)
+            {
+                throw new ArgumentException("Request body is required.");
+            }
+
+            var auction = await _db.Auctions.FirstOrDefaultAsync(a => a.Id == id);
             if (auction == null)
             {
                 throw new KeyNotFoundException("Auction not found.");
             }
 
-            if (dto == null)
+            // Check ownership: auctioneers can only update their own auctions, admins can update any
+            if (!isAdmin && auction.AuctionneerId != userId)
             {
-                throw new ArgumentException("Request body is required.");
+                throw new UnauthorizedAccessException("You can only update your own auctions.");
             }
 
             if (dto.AuctionDate < DateOnly.FromDateTime(DateTime.UtcNow))
@@ -174,12 +210,42 @@ namespace backend.Services
                 throw new ArgumentException("Auction date cannot be in the past.");
             }
 
-            // Validate clock location if provided
-            if (dto.ClockLocationId.HasValue)
+            if (!dto.ClockLocationId.HasValue)
             {
-                if (!_db.ClockLocations.Any(cl => cl.Id == dto.ClockLocationId.Value))
+                throw new ArgumentException("Clock location is required for auctions.");
+            }
+
+            var clockLocationExists = await _db.ClockLocations
+                .AsNoTracking()
+                .AnyAsync(cl => cl.Id == dto.ClockLocationId.Value);
+            if (!clockLocationExists)
+            {
+                throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+            }
+
+            var productIds = dto.ProductIds ?? new List<Guid>();
+            if (productIds.Any())
+            {
+                // Batch validate all products at once
+                var products = await _db.Products
+                    .AsNoTracking()
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+
+                var foundProductIds = products.Select(p => p.Id).ToHashSet();
+                var missingProducts = productIds.Where(id => !foundProductIds.Contains(id)).ToList();
+                if (missingProducts.Any())
                 {
-                    throw new ArgumentException($"Clock location {dto.ClockLocationId.Value} does not exist.");
+                    throw new ArgumentException($"Products do not exist: {string.Join(", ", missingProducts)}");
+                }
+
+                var invalidProducts = products.Where(p => 
+                    !p.ClockLocationId.HasValue || 
+                    p.ClockLocationId.Value != dto.ClockLocationId.Value).ToList();
+                if (invalidProducts.Any())
+                {
+                    var invalidIds = string.Join(", ", invalidProducts.Select(p => p.Id));
+                    throw new ArgumentException($"Products {invalidIds} do not have the correct clock location assigned.");
                 }
             }
 
@@ -190,7 +256,7 @@ namespace backend.Services
             auction.Description = dto.Description;
             auction.ClockLocationId = dto.ClockLocationId;
 
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return $"Auction {auction.Id} updated successfully.";
         }
@@ -198,33 +264,39 @@ namespace backend.Services
         // Verwijdert een veiling uit de database.
         // Gooit een exceptie als de veiling niet bestaat (het heeft geen zin iets te verwijderen wat er niet is).
         // Anders verwijderen we de veiling en slaan we dat op (digitale equivalent van "weg is weg").
-        public string DeleteAuction(Guid id)
+        public async Task<string> DeleteAuction(Guid id, Guid userId, bool isAdmin)
         {
-            var auction = _db.Auctions.Find(id);
+            var auction = await _db.Auctions.FirstOrDefaultAsync(a => a.Id == id);
             if (auction == null)
             {
                 throw new KeyNotFoundException("Auction not found.");
             }
+
+            if (!isAdmin && auction.AuctionneerId != userId)
+            {
+                throw new UnauthorizedAccessException("You can only delete your own auctions.");
+            }
+
             _db.Auctions.Remove(auction);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return $"Auction {auction.Id} deleted successfully.";
         }
-        public AuctionDto SetAuctionTime(Guid id, SetAuctionTimeDto dto)
+        public async Task<AuctionDto> SetAuctionTime(Guid id, SetAuctionTimeDto dto)
         {
             if (dto == null)
             {
                 throw new ArgumentException("Request body is required.");
             }
 
-            var auction = _db.Auctions.Find(id);
+            var auction = await _db.Auctions.FirstOrDefaultAsync(a => a.Id == id);
             if (auction == null)
             {
                 throw new KeyNotFoundException("Auction not found.");
             }
 
             auction.AuctionTime = dto.AuctionTime;
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return new AuctionDto
             {

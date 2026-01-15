@@ -18,16 +18,33 @@ public class ProductController : Controller
         _db = db;
     }
 
+    private async Task<bool> ValidateClockLocationAsync(Guid? clockLocationId)
+    {
+        if (!clockLocationId.HasValue)
+            return true;
+
+        return await _db.ClockLocations
+            .AsNoTracking()
+            .AnyAsync(cl => cl.Id == clockLocationId.Value);
+    }
+
     // GET /products
     [Authorize(Roles = "admin,supplier,auctioneer")]
     [HttpGet("")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index([FromQuery] Guid? clockLocationId)
     {
-        var products = await _db.Products
+        var query = _db.Products
             .AsNoTracking()
             .Include(p => p.Species)
-            .ToListAsync();
+            .Include(p => p.ClockLocation)
+            .AsQueryable();
 
+        if (clockLocationId.HasValue)
+        {
+            query = query.Where(p => p.ClockLocationId == clockLocationId.Value);
+        }
+
+        var products = await query.ToListAsync();
         return Ok(products);
     }
 
@@ -39,6 +56,7 @@ public class ProductController : Controller
         var product = await _db.Products
             .AsNoTracking()
             .Include(p => p.Species)
+            .Include(p => p.ClockLocation)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product is null)
@@ -52,32 +70,82 @@ public class ProductController : Controller
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
+        if (dto == null)
+        {
+            return BadRequest("Request body is required.");
+        }
+
         string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out Guid supplierId))
         {
             return Unauthorized("Invalid user id");
         }
-        // check of species bestaat
-        var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
-        if (!speciesExists)
-            return BadRequest("Invalid SpeciesId.");
 
-        var product = new Product
+        try
         {
-            Id = Guid.NewGuid(),
-            SupplierId = supplierId,
-            SpeciesId = dto.SpeciesId,
-            PotSize = dto.PotSize,
-            StemLength = dto.StemLength,
-            Quantity = dto.Quantity,
-            MinPrice = dto.MinPrice,
-            PhotoUrl = dto.PhotoUrl
-        };
+            var speciesExists = await _db.Species.AnyAsync(s => s.Id == dto.SpeciesId);
+            var clockLocationValid = await ValidateClockLocationAsync(dto.ClockLocationId);
 
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync();
+            if (!speciesExists)
+                return BadRequest("Invalid SpeciesId.");
 
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            if (!clockLocationValid)
+                return BadRequest("Invalid ClockLocationId.");
+
+            var product = new Product
+            {
+                Id = Guid.NewGuid(),
+                SupplierId = supplierId,
+                SpeciesId = dto.SpeciesId,
+                PotSize = dto.PotSize,
+                StemLength = dto.StemLength,
+                Quantity = dto.Quantity,
+                MinPrice = dto.MinPrice,
+                PhotoUrl = dto.PhotoUrl,
+                ClockLocationId = dto.ClockLocationId
+            };
+
+            _db.Products.Add(product);
+            
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException saveEx)
+            {
+                return StatusCode(500, new { error = $"Failed to save product: {saveEx.Message}", type = saveEx.GetType().Name, innerException = saveEx.InnerException?.Message });
+            }
+
+            // Reload product with related entities for the response
+            Product? createdProduct;
+            try
+            {
+                createdProduct = await _db.Products
+                    .AsNoTracking()
+                    .Include(p => p.Species)
+                    .Include(p => p.ClockLocation)
+                    .FirstOrDefaultAsync(p => p.Id == product.Id);
+            }
+            catch (Exception reloadEx)
+            {
+                return StatusCode(500, new { error = $"Failed to reload product: {reloadEx.Message}", type = reloadEx.GetType().Name });
+            }
+
+            if (createdProduct == null)
+            {
+                return StatusCode(500, new { error = "Failed to retrieve created product." });
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, createdProduct);
+        }
+        catch (DbUpdateException dbEx)
+        {
+            return StatusCode(500, new { error = $"Database error: {dbEx.Message}", type = dbEx.GetType().Name, innerException = dbEx.InnerException?.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name, stackTrace = ex.StackTrace });
+        }
     }
 
     // PUT /products/{id}
@@ -85,9 +153,22 @@ public class ProductController : Controller
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid userId))
+        {
+            return Unauthorized("Invalid user id");
+        }
+
+        var isAdmin = User.IsInRole("admin");
+
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null)
             return NotFound();
+
+        if (!isAdmin && product.SupplierId != userId)
+        {
+            return Forbid("You can only update your own products.");
+        }
 
         if (dto.SpeciesId.HasValue)
         {
@@ -113,6 +194,13 @@ public class ProductController : Controller
         if (dto.PhotoUrl is not null)
             product.PhotoUrl = string.IsNullOrWhiteSpace(dto.PhotoUrl) ? null : dto.PhotoUrl;
 
+        if (dto.ClockLocationId.HasValue)
+        {
+            if (!await ValidateClockLocationAsync(dto.ClockLocationId))
+                return BadRequest("Invalid ClockLocationId.");
+            product.ClockLocationId = dto.ClockLocationId.Value;
+        }
+
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -122,9 +210,22 @@ public class ProductController : Controller
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
+        string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out Guid userId))
+        {
+            return Unauthorized("Invalid user id");
+        }
+
+        var isAdmin = User.IsInRole("admin");
+
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null)
             return NotFound();
+
+        if (!isAdmin && product.SupplierId != userId)
+        {
+            return Forbid("You can only delete your own products.");
+        }
 
         _db.Products.Remove(product);
         await _db.SaveChangesAsync();

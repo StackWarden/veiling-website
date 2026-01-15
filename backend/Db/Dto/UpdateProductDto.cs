@@ -7,4 +7,5 @@ public class UpdateProductDto
     public int? Quantity { get; set; }
     public decimal? MinPrice { get; set; }
     public string? PhotoUrl { get; set; }
+    public Guid? ClockLocationId { get; set; }
 }

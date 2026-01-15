@@ -67,5 +67,11 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany()
             .HasForeignKey(a => a.ClockLocationId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        ModelBuilder.Entity<Product>()
+            .HasOne(p => p.ClockLocation)
+            .WithMany()
+            .HasForeignKey(p => p.ClockLocationId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
