@@ -17,6 +17,19 @@ namespace backend.Services
             _live = live;
         }
 
+        private static decimal ResolveStartPrice(Product product)
+        {
+            var start = product.StartPrice;
+
+            if (start <= 0m)
+                start = product.MinPrice * 1.5m;
+
+            if (start < product.MinPrice)
+                start = product.MinPrice;
+
+            return start;
+        }
+
         public async Task<LiveAuctionDto> StartLive(Guid auctionId)
         {
             var auction = await _db.Auctions
@@ -65,7 +78,7 @@ namespace backend.Services
 
             state.CurrentAuctionItemId = first.Id;
 
-            state.StartingPrice = first.Product.StartPrice;
+            state.StartingPrice = ResolveStartPrice(first.Product);
             state.MinPrice = first.Product.MinPrice;
 
             state.DecayPerSecond = 0.02m;
@@ -116,6 +129,8 @@ namespace backend.Services
 
             var acceptedPrice = ComputeCurrentPrice(state, now);
 
+            var isFinalRound = state.RoundIndex >= state.MaxRounds;
+
             await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             var bidAlreadyPlacedThisRound = await _db.Bids.AnyAsync(b =>
@@ -154,6 +169,34 @@ namespace backend.Services
             };
 
             _db.Bids.Add(bid);
+
+            if (isFinalRound)
+            {
+                item.Status = AuctionItemStatus.Sold;
+                item.BuyerId = buyerId;
+                item.SoldPrice = acceptedPrice;
+                item.SoldAtUtc = now;
+                item.SoldAmount = acceptedQty;
+
+                item.Product.Quantity = Math.Max(0, item.Product.Quantity - acceptedQty);
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                state.ClearLastBid();
+                await AdvanceInternal(auctionId, state);
+
+                var afterFinal = await BuildLiveDto(auctionId, state);
+
+                return new LiveBidResultDto
+                {
+                    Accepted = true,
+                    AcceptedPrice = acceptedPrice,
+                    BidId = bid.Id,
+                    Final = true,
+                    State = afterFinal
+                };
+            }
 
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
@@ -289,7 +332,7 @@ namespace backend.Services
             if (nextItem.Status == AuctionItemStatus.Pending)
                 nextItem.Status = AuctionItemStatus.Live;
 
-            state.StartingPrice = nextItem.Product.StartPrice;
+            state.StartingPrice = ResolveStartPrice(nextItem.Product);
             state.MinPrice = nextItem.Product.MinPrice;
 
             await _db.SaveChangesAsync();
