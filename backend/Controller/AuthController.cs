@@ -62,17 +62,21 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid email or password.");
         }
         var token = await GenerateJwtTokenAsync(user.Id.ToString());
+        var cookieDomain = GetCookieDomainFromEnv();
+        var secure = IsProductionLike();
+        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
 
         Response.Cookies.Append("jwt", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
-            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
-            Expires = DateTimeOffset.UtcNow.AddMinutes(30),
+            Secure = secure,
+            SameSite = sameSite,
+            Domain = cookieDomain,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(60),
             Path = "/"
         });
 
-        return Ok(new { message = "Login successful", token = token});
+        return Ok(new { message = "Login successful", token });
     }
 
     // POST: /auth/logout
@@ -84,11 +88,16 @@ public class AuthController : ControllerBase
     {
         await _signInManager.SignOutAsync();
 
+        var cookieDomain = GetCookieDomainFromEnv();
+        var secure = IsProductionLike();
+        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
+
         Response.Cookies.Append("jwt", string.Empty, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps, // Will be false in development (HTTP), true in production (HTTPS)
-            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, // None for HTTPS, Lax for HTTP
+            Secure = secure,
+            SameSite = sameSite,
+            Domain = cookieDomain,
             Expires = DateTimeOffset.UtcNow.AddDays(-1),
             Path = "/"
         });
@@ -237,4 +246,29 @@ public class AuthController : ControllerBase
         };
         return Ok(roles);
     }
+    private static string GetCookieDomainFromEnv()
+    {
+        var domain = Environment.GetEnvironmentVariable("DOMAIN") ?? "";
+        domain = domain.Trim();
+
+        if (domain.Contains("://"))
+        {
+            domain = new Uri(domain).Host;
+        }
+
+        var parts = domain.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            domain = $"{parts[^2]}.{parts[^1]}";
+        }
+
+        return "." + domain;
+    }
+
+    private bool IsProductionLike()
+    {
+        return !HttpContext.Request.Host.Host.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+            && !HttpContext.Request.Host.Host.Contains("127.0.0.1");
+    }
+
 }
