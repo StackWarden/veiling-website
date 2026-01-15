@@ -40,7 +40,6 @@ namespace backend.Services
             if (items.Count == 0)
                 throw new ArgumentException("Auction has no items.");
 
-            // End other live auctions
             var otherLiveAuctions = await _db.Auctions
                 .Where(a => a.Status == "Live" && a.Id != auctionId)
                 .ToListAsync();
@@ -71,7 +70,6 @@ namespace backend.Services
 
             state.DecayPerSecond = 0.02m;
 
-            // IMPORTANT: new item => clear last bid
             state.ClearLastBid();
 
             return await BuildLiveDto(auctionId, state);
@@ -91,7 +89,6 @@ namespace backend.Services
                 };
             }
 
-            // Auto rules
             await MaybeAutoFinalizeOrPass(auctionId, state);
 
             return await BuildLiveDto(auctionId, state);
@@ -102,7 +99,6 @@ namespace backend.Services
             if (!_live.TryGet(auctionId, out var state) || !state.IsRunning)
                 throw new ArgumentException("Auction is not running.");
 
-            // If the clock already hit min, finalize/pass first
             await MaybeAutoFinalizeOrPass(auctionId, state);
 
             if (!state.IsRunning || state.CurrentAuctionItemId is null)
@@ -118,12 +114,10 @@ namespace backend.Services
             var currentItemId = state.CurrentAuctionItemId.Value;
             var roundStartedAt = state.RoundStartedAtUtc;
 
-            // authoritative accepted price right now
             var acceptedPrice = ComputeCurrentPrice(state, now);
 
             await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            // One bid per round
             var bidAlreadyPlacedThisRound = await _db.Bids.AnyAsync(b =>
                 b.AuctionId == auctionId &&
                 b.AuctionItemId == currentItemId &&
@@ -142,6 +136,12 @@ namespace backend.Services
             if (item.Status == AuctionItemStatus.Sold || item.Status == AuctionItemStatus.Passed)
                 throw new InvalidOperationException("Auction item is no longer live.");
 
+            var available = item.Product.Quantity;
+            var acceptedQty = Math.Min(dto.Quantity, available);
+
+            if (acceptedQty <= 0)
+                throw new InvalidOperationException("No stock left for this product.");
+
             var bid = new Bid
             {
                 Id = Guid.NewGuid(),
@@ -149,26 +149,23 @@ namespace backend.Services
                 AuctionItemId = currentItemId,
                 BuyerId = buyerId,
                 Price = acceptedPrice,
-                Quantity = dto.Quantity,
+                Quantity = acceptedQty,
                 CreatedAtUtc = now
             };
+
             _db.Bids.Add(bid);
 
-            // Persist bid first
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
 
-            // Track last bid in memory (for auto-sell when min reached)
             state.LastBidBuyerId = buyerId;
             state.LastBidPrice = acceptedPrice;
-            state.LastBidQuantity = dto.Quantity;
+            state.LastBidQuantity = acceptedQty;
             state.LastBidAtUtc = now;
 
-            // Round 2+ only because of bid
             state.RoundIndex += 1;
             state.RoundStartedAtUtc = now;
 
-            // New dynamic minimum becomes the last bid price (can only go up)
             if (acceptedPrice > state.MinPrice)
                 state.MinPrice = acceptedPrice;
 
@@ -179,7 +176,7 @@ namespace backend.Services
                 Accepted = true,
                 AcceptedPrice = acceptedPrice,
                 BidId = bid.Id,
-                Final = false, // final happens by auto-sell OR if you still use MaxRounds logic
+                Final = false,
                 State = liveDtoAfter
             };
         }
@@ -193,11 +190,6 @@ namespace backend.Services
             return await BuildLiveDto(auctionId, state);
         }
 
-        /// <summary>
-        /// Core rule:
-        /// - If price hits min and there was NO bid ever for this item and we're in round 1 => PASS
-        /// - If price hits min and there IS a last bid => SOLD to last bidder
-        /// </summary>
         private async Task MaybeAutoFinalizeOrPass(Guid auctionId, AuctionLiveState state)
         {
             if (!state.IsRunning || state.CurrentAuctionItemId is null)
@@ -207,28 +199,21 @@ namespace backend.Services
             var currentPrice = ComputeCurrentPrice(state, now);
 
             if (currentPrice > state.MinPrice)
-                return; // still above min
+                return;
 
             var itemId = state.CurrentAuctionItemId.Value;
 
-            // load item
             var item = await _db.AuctionItems
                 .Include(ai => ai.Product)
                 .FirstOrDefaultAsync(ai => ai.Id == itemId);
 
             if (item == null) return;
 
-            // CASE 1: No last bid => only auto-pass in round 1
             if (state.LastBidBuyerId is null || state.LastBidPrice is null || state.LastBidQuantity is null)
             {
                 if (state.RoundIndex != 1)
-                {
-                    // No bid but we're past round 1 shouldn't happen with your rules.
-                    // Do nothing (or you could force pass).
                     return;
-                }
 
-                // Ensure truly no bids in DB as safety
                 var anyBidEverForItem = await _db.Bids.AnyAsync(b =>
                     b.AuctionId == auctionId &&
                     b.AuctionItemId == itemId);
@@ -243,11 +228,25 @@ namespace backend.Services
                 return;
             }
 
-            // CASE 2: There IS a last bid => auto-sell to last bidder
+            var available = item.Product.Quantity;
+            var soldQty = Math.Min(state.LastBidQuantity.Value, available);
+
+            if (soldQty <= 0)
+            {
+                item.Status = AuctionItemStatus.Passed;
+                await _db.SaveChangesAsync();
+                await AdvanceInternal(auctionId, state);
+                return;
+            }
+
             item.Status = AuctionItemStatus.Sold;
             item.BuyerId = state.LastBidBuyerId.Value;
-            item.SoldPrice = state.LastBidPrice.Value;      // this equals min at this moment (or higher)
+            item.SoldPrice = state.LastBidPrice.Value;
             item.SoldAtUtc = now;
+
+            item.SoldAmount = soldQty;
+
+            item.Product.Quantity = Math.Max(0, item.Product.Quantity - soldQty);
 
             await _db.SaveChangesAsync();
 
@@ -275,7 +274,6 @@ namespace backend.Services
             state.RoundIndex = 1;
             state.RoundStartedAtUtc = DateTime.UtcNow;
 
-            // new item => clear last bid info
             state.ClearLastBid();
 
             if (nextId is null)
@@ -291,7 +289,6 @@ namespace backend.Services
             if (nextItem.Status == AuctionItemStatus.Pending)
                 nextItem.Status = AuctionItemStatus.Live;
 
-            // reset pricing from product
             state.StartingPrice = nextItem.Product.StartPrice;
             state.MinPrice = nextItem.Product.MinPrice;
 

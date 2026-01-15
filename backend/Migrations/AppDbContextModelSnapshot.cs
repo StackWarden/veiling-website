@@ -201,6 +201,9 @@ namespace backend.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("SoldAmount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("SoldAtUtc")
                         .HasColumnType("datetime2");
 
