@@ -6,7 +6,6 @@ import PriceHistoryPopup from "@/components/pricehistory/PriceHistoryPopup";
 
 import ProductOverviewCard from "@/components/auction/ProductOverviewCard";
 import BidPanel from "@/components/auction/BidPanel";
-import NextProductCard from "@/components/auction/NextProductCard";
 
 type LiveProduct = {
   id: string;

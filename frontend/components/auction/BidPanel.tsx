@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { RoleGate } from "@/components/RoleGate";
 
 type Props = {
   roundLabel: string;
@@ -71,7 +72,7 @@ export default function BidPanel({
           <div className="h-full rounded-full bg-neutral-900" style={{ width: `${progress}%` }} />
         </div>
       </div>
-
+      <RoleGate allow={["buyer", "admin"]}>
       <div className="mt-4">
         <label className="sr-only" htmlFor="bid-qty">
           Quantity
@@ -89,14 +90,14 @@ export default function BidPanel({
           required
         />
       </div>
-
-      <button
-        type="button"
-        onClick={submit}
-        className="mt-4 w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 active:bg-neutral-950"
-      >
-        Place your bid!
-      </button>
+        <button
+          type="button"
+          onClick={submit}
+          className="mt-4 w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 active:bg-neutral-950"
+        >
+          Place your bid!
+        </button>
+      </RoleGate>
     </div>
   );
 }
