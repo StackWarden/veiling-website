@@ -63,8 +63,8 @@ public class AuthController : ControllerBase
         }
         var token = await GenerateJwtTokenAsync(user.Id.ToString());
         var cookieDomain = GetCookieDomainFromEnv();
-        var secure = IsProductionLike();
-        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
+        var secure = IsHttpsFromClient();
+        var sameSite = SameSiteMode.None;
 
         Response.Cookies.Append("jwt", token, new CookieOptions
         {
@@ -89,8 +89,8 @@ public class AuthController : ControllerBase
         await _signInManager.SignOutAsync();
 
         var cookieDomain = GetCookieDomainFromEnv();
-        var secure = IsProductionLike();
-        var sameSite = secure ? SameSiteMode.None : SameSiteMode.Lax;
+        var secure = IsHttpsFromClient();
+        var sameSite = SameSiteMode.None;
 
         Response.Cookies.Append("jwt", string.Empty, new CookieOptions
         {
@@ -265,10 +265,10 @@ public class AuthController : ControllerBase
         return "." + domain;
     }
 
-    private bool IsProductionLike()
+    private bool IsHttpsFromClient()
     {
-        return !HttpContext.Request.Host.Host.Contains("localhost", StringComparison.OrdinalIgnoreCase)
-            && !HttpContext.Request.Host.Host.Contains("127.0.0.1");
+        // If forwarded headers are configured, this will be true for Cloudflare HTTPS
+        return Request.IsHttps
+            || string.Equals(Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
     }
-
 }
