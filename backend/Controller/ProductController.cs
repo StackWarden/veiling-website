@@ -237,7 +237,7 @@ public class ProductController : Controller
     }
 
     [HttpGet("{productId:guid}/price-history")]
-    [Authorize(Roles = "buyer,admin")]
+    [Authorize]
     public async Task<IActionResult> GetPriceHistory(Guid productId)
     {
         var data = await _priceHistoryService.GetPriceHistory(productId);
