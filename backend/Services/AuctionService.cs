@@ -329,10 +329,8 @@ namespace backend.Services
                 ProductId = ai.ProductId,
                 ProductSpecies = ai.Product.Species.Title,
                 SoldAmount = ai.SoldAmount!.Value,
-                SoldPrice = ai.SoldPrice!.Value,
-                PricePerUnit = ai.SoldAmount!.Value > 0 
-                    ? ai.SoldPrice!.Value / ai.SoldAmount!.Value 
-                    : 0m,
+                PricePerUnit = ai.SoldPrice!.Value,
+                SoldPrice = ai.SoldPrice!.Value * ai.SoldAmount!.Value,
                 SoldAtUtc = ai.SoldAtUtc
             }).ToList();
 
