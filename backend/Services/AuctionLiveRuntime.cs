@@ -8,7 +8,7 @@ public class AuctionLiveState
 
     public Guid? CurrentAuctionItemId { get; set; }
 
-    // Only increases when a bid is placed
+    // Round 2+ only happens because a bid was placed
     public int RoundIndex { get; set; } = 1;
     public int MaxRounds { get; set; } = 3;
 
@@ -16,13 +16,26 @@ public class AuctionLiveState
 
     // Per item pricing
     public decimal StartingPrice { get; set; }
-    public decimal MinPrice { get; set; } // dynamic min (Round 1 = product min, Round 2+ = first bid price, etc.)
+    public decimal MinPrice { get; set; } // dynamic min (Round 1 = product min, Round 2+ = last bid price, etc.)
 
-    // Percentage decay per second (exponential)
-    // Example: 0.02 => ~2% per second exponential decay
+    // Exponential percentage decay per second
     public decimal DecayPerSecond { get; set; } = 0.02m;
 
     public bool IsRunning { get; set; } = false;
+
+    // Track last bid for current item (so we can auto-sell when clock hits min)
+    public Guid? LastBidBuyerId { get; set; }
+    public decimal? LastBidPrice { get; set; }
+    public int? LastBidQuantity { get; set; }
+    public DateTime? LastBidAtUtc { get; set; }
+
+    public void ClearLastBid()
+    {
+        LastBidBuyerId = null;
+        LastBidPrice = null;
+        LastBidQuantity = null;
+        LastBidAtUtc = null;
+    }
 }
 
 public interface IAuctionLiveRuntime
