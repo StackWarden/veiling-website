@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RoleGate } from "@/components/RoleGate";
+import PriceHistoryPopup from "@/components/pricehistory/PriceHistoryPopup";
 
 import ProductOverviewCard from "@/components/auction/ProductOverviewCard";
 import BidPanel from "@/components/auction/BidPanel";
@@ -57,6 +58,7 @@ export default function AuctionScreen({ auctionId }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [startAuctionError, setStartAuctionError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // serverTime - clientNow (ms). Use it to make countdown consistent.
   const serverOffsetMsRef = useRef<number>(0);
@@ -302,6 +304,16 @@ export default function AuctionScreen({ auctionId }: Props) {
                     });
                 }}
               />
+              {live?.product?.id ? (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  className="w-full rounded-xl border border-[#D9D9D9] bg-white px-4 py-3 font-semibold text-[#162218] hover:bg-[#162218] hover:text-white transition"
+                >
+                  Zie verkoop geschiedenis
+                </button>
+              ) : null}
+
 
               {showNext ? (
                 <NextProductCard
@@ -359,6 +371,13 @@ export default function AuctionScreen({ auctionId }: Props) {
           </div>
         </div>
       </RoleGate>
+      {live?.product?.id ? (
+        <PriceHistoryPopup
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          productId={live.product.id}
+        />
+      ) : null}
     </>
   );
 }

@@ -119,6 +119,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IAuctionLiveRuntime, AuctionLiveRuntime>();
 builder.Services.AddScoped<AuctionService>();
 builder.Services.AddScoped<AuctionLiveService>();
+builder.Services.AddScoped<PriceHistoryService>();
 
 // Get allowed origins from environment or use defaults
 var allowedOriginsEnv = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
