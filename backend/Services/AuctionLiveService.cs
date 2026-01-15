@@ -1,11 +1,7 @@
 using backend.Db;
 using backend.Db.Entities;
 using backend.Dtos;
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Data;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
@@ -17,32 +13,24 @@ namespace backend.Services
 
         public AuctionLiveService(AppDbContext db, IAuctionLiveRuntime live)
         {
-            // Deze service regelt de live veilingen (starten, bieden, naar het volgende item, etc.).
-            // Zo blijft de controller gevrijwaard van alle hectische live-logica.
             _db = db;
             _live = live;
         }
 
-        // Start een live veiling. Zet het eerste item klaar en zet de veiling op "running".
-        // Gooit een exceptie als de veiling niet bestaat (dan valt er weinig te starten),
-        // of als er geen items zijn (een veiling zonder items starten heeft weinig om het lijf).
         public async Task<LiveAuctionDto> StartLive(Guid auctionId)
         {
             var auction = await _db.Auctions
                 .Include(a => a.AuctionItems)
+                    .ThenInclude(ai => ai.Product)
+                        .ThenInclude(p => p.Species)
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
 
             if (auction == null)
-            {
                 throw new KeyNotFoundException("Auction not found.");
-            }
 
             if (!auction.ClockLocationId.HasValue)
-            {
                 throw new ArgumentException("Auction cannot be started without a clock location.");
-            }
 
-            // Sorteer de items zodat Pending items eerst komen (die moeten geveild worden).
             var items = auction.AuctionItems
                 .Where(ai => ai.Status == AuctionItemStatus.Pending || ai.Status == AuctionItemStatus.Live)
                 .OrderBy(ai => ai.Status == AuctionItemStatus.Live ? 0 : 1)
@@ -50,43 +38,50 @@ namespace backend.Services
                 .ToList();
 
             if (items.Count == 0)
-            {
                 throw new ArgumentException("Auction has no items.");
-            }
 
-            // Zet alle andere veilingen die live zijn naar ended
+            // End other live auctions
             var otherLiveAuctions = await _db.Auctions
                 .Where(a => a.Status == "Live" && a.Id != auctionId)
                 .ToListAsync();
 
             foreach (var other in otherLiveAuctions)
-            {
                 other.Status = "Ended";
-            }
 
-            // Zet deze op Live
             auction.Status = "Live";
+            await _db.SaveChangesAsync();
+
+            var first = items.First();
+
+            // ensure current item is live
+            if (first.Status == AuctionItemStatus.Pending)
+                first.Status = AuctionItemStatus.Live;
+
             await _db.SaveChangesAsync();
 
             var state = _live.GetOrCreate(auctionId);
             state.IsRunning = true;
             state.RoundIndex = 1;
+            state.MaxRounds = 3;
             state.RoundStartedAtUtc = DateTime.UtcNow;
 
-            // Start bij het eerste item (we gaan er vanuit dat die Pending is, anders is er iets geks gebeurd).
-            state.CurrentAuctionItemId = items.First().Id;
+            state.CurrentAuctionItemId = first.Id;
 
-            // Bouw en retourneer de huidige live veilingstatus.
+            // Pull pricing from Product
+            state.StartingPrice = first.Product.StartPrice;
+            state.MinPrice = first.Product.MinPrice;
+
+            // percentage decay (tweakable)
+            // Example: 0.02 ~ 2% per second exponential.
+            state.DecayPerSecond = 0.02m;
+
             return await BuildLiveDto(auctionId, state);
         }
 
-        // Haalt de live status van de veiling op. 
-        // Als de veiling nog niet live is, geven we een status "stopped" terug met ronde 0.
         public async Task<LiveAuctionDto> GetLive(Guid auctionId)
         {
             if (!_live.TryGet(auctionId, out var state))
             {
-                // Live nog niet gestart, dus we geven een 'stopped' status terug.
                 return new LiveAuctionDto
                 {
                     AuctionId = auctionId,
@@ -97,79 +92,58 @@ namespace backend.Services
                 };
             }
 
-            // Als er al een state is, bouwen we de actuele status.
+            // Only auto-pass in Round 1 when price reaches the Round 1 min and there were no bids.
+            await MaybeAutoPassIfMinReached_NoBids_Round1Only(auctionId, state);
+
             return await BuildLiveDto(auctionId, state);
         }
 
-        // Plaatst een live bod op het huidige item van de veiling.
-        // Controleert eerst of de veiling wel bezig is en of er op het juiste item geboden wordt.
-        // We zorgen er ook voor dat er maar één bod per ronde kan (het is tenslotte een veiling, geen chaos).
-        // Als alles in orde is, slaan we het bod op en verwerken we het resultaat: 
-        // bij de laatste ronde verkopen we het item en gaan we naar het volgende, anders verhogen we de ronde.
         public async Task<LiveBidResultDto> PlaceLiveBid(Guid auctionId, Guid buyerId, PlaceLiveBidDto dto)
         {
-            // Veiling moet gestart en gaande zijn, anders heeft bieden geen zin.
             if (!_live.TryGet(auctionId, out var state) || !state.IsRunning)
-            {
                 throw new ArgumentException("Auction is not running.");
-            }
 
-            // Er moet een huidig item zijn om op te bieden.
-            if (state.CurrentAuctionItemId is null)
-            {
-                throw new ArgumentException("No current auction item.");
-            }
+            // If Round 1 hits min and no bids -> it may have passed already
+            await MaybeAutoPassIfMinReached_NoBids_Round1Only(auctionId, state);
 
-            // Check dat het bod gericht is op het juiste (huidige) item.
+            if (!state.IsRunning || state.CurrentAuctionItemId is null)
+                throw new ArgumentException("Auction is not running.");
+
             if (dto.AuctionItemId != state.CurrentAuctionItemId.Value)
-            {
                 throw new InvalidOperationException("Bid is not for the current auction item.");
-            }
 
-            // Quantity moet positief zijn (we verkopen geen negatieve of nul stuks).
             if (dto.Quantity <= 0)
-            {
                 throw new ArgumentException("Quantity must be > 0.");
-            }
 
             var now = DateTime.UtcNow;
-
-            // Bepaal de huidige prijs op basis van de status vlak vóór het bod.
-            var liveDtoBefore = await BuildLiveDto(auctionId, state);
-            var acceptedPrice = liveDtoBefore.CurrentPrice;
             var currentItemId = state.CurrentAuctionItemId.Value;
             var roundStartedAt = state.RoundStartedAtUtc;
 
-            // Start een database transactie om race conditions te voorkomen (één bod per ronde maximaal).
+            // Compute accepted price from clock right now (authoritative)
+            var acceptedPrice = ComputeCurrentPrice(state, now);
+
             await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            // Is er al een bod in deze ronde geplaatst? Zo ja, dan ben je te laat.
+            // One bid per round
             var bidAlreadyPlacedThisRound = await _db.Bids.AnyAsync(b =>
                 b.AuctionId == auctionId &&
                 b.AuctionItemId == currentItemId &&
                 b.CreatedAtUtc > roundStartedAt);
 
             if (bidAlreadyPlacedThisRound)
-            {
-                // Iemand anders was net iets sneller deze ronde.
                 throw new InvalidOperationException("A bid was already placed this round.");
-            }
 
-            // Haal het huidige item op uit de database om de status te controleren.
-            var item = await _db.AuctionItems.FirstOrDefaultAsync(ai => ai.Id == currentItemId);
+            var item = await _db.AuctionItems
+                .Include(ai => ai.Product)
+                .FirstOrDefaultAsync(ai => ai.Id == currentItemId);
+
             if (item == null)
-            {
-                // Dit zou niet moeten gebeuren tenzij het item buiten de veiling om is verwijderd.
                 throw new KeyNotFoundException("Auction item not found.");
-            }
 
-            // Als het item al verkocht of gepasseerd is, kun je er niet meer op bieden.
             if (item.Status == AuctionItemStatus.Sold || item.Status == AuctionItemStatus.Passed)
-            {
                 throw new InvalidOperationException("Auction item is no longer live.");
-            }
 
-            // Maak het bod aan en sla het op.
+            // Create bid
             var bid = new Bid
             {
                 Id = Guid.NewGuid(),
@@ -182,12 +156,11 @@ namespace backend.Services
             };
             _db.Bids.Add(bid);
 
-            // Check of dit de laatste ronde is voor dit item.
+            // Final round => sell
             var isFinalBid = state.RoundIndex >= state.MaxRounds;
 
             if (isFinalBid)
             {
-                // Laatste ronde: markeer item als verkocht en sla de verkoopdetails op.
                 item.Status = AuctionItemStatus.Sold;
                 item.BuyerId = buyerId;
                 item.SoldPrice = acceptedPrice;
@@ -196,26 +169,27 @@ namespace backend.Services
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                // Naar het volgende item (de show must go on).
                 await AdvanceInternal(auctionId, state);
             }
             else
             {
-                // Niet laatste ronde: ga naar de volgende ronde voor ditzelfde item.
+                // Not final => move to next round (ONLY because of bid)
                 if (item.Status == AuctionItemStatus.Pending)
-                {
                     item.Status = AuctionItemStatus.Live;
-                }
 
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                // Verhoog de ronde en reset de starttijd voor de nieuwe ronde.
+                // IMPORTANT: Round increments ONLY here (bid happens)
                 state.RoundIndex += 1;
                 state.RoundStartedAtUtc = now;
+
+                // Update dynamic minimum AFTER FIRST BID (Round 2 minimum should be first bid price)
+                // It can only go up, never down.
+                if (acceptedPrice > state.MinPrice)
+                    state.MinPrice = acceptedPrice;
             }
 
-            // Bouw de status na het bod (met eventueel het volgende item als we verkocht hebben).
             var liveDtoAfter = await BuildLiveDto(auctionId, state);
 
             return new LiveBidResultDto
@@ -228,22 +202,53 @@ namespace backend.Services
             };
         }
 
-        // Gaat naar het volgende item in de live veiling (handmatig).
-        // Als de veiling niet loopt, gooien we een fout (je kunt niet verder als er niks gaande is).
         public async Task<LiveAuctionDto> AdvanceLive(Guid auctionId)
         {
             if (!_live.TryGet(auctionId, out var state) || !state.IsRunning)
-            {
                 throw new ArgumentException("Auction is not running.");
-            }
 
-            // Ga intern naar het volgende item.
             await AdvanceInternal(auctionId, state);
-            // Geef de nieuwe status terug (als er geen volgend item is, zal status "stopped" zijn).
             return await BuildLiveDto(auctionId, state);
         }
 
-        // Interne helper om naar het volgende item te gaan en de state bij te werken.
+        // Auto-pass ONLY in round 1 when the clock reaches min AND there were no bids for this item at all.
+        private async Task MaybeAutoPassIfMinReached_NoBids_Round1Only(Guid auctionId, AuctionLiveState state)
+        {
+            if (!state.IsRunning || state.CurrentAuctionItemId is null)
+                return;
+
+            // Round 2 must NEVER happen without bids, so we only auto logic in round 1.
+            if (state.RoundIndex != 1)
+                return;
+
+            var now = DateTime.UtcNow;
+            var currentPrice = ComputeCurrentPrice(state, now);
+
+            // Not reached min yet => do nothing
+            if (currentPrice > state.MinPrice)
+                return;
+
+            var itemId = state.CurrentAuctionItemId.Value;
+
+            // If ANY bid exists for this item, do NOT auto-pass.
+            // (At that point RoundIndex would be 2+ anyway because bids increment it, but this is extra safety.)
+            var anyBidEverForItem = await _db.Bids.AnyAsync(b =>
+                b.AuctionId == auctionId &&
+                b.AuctionItemId == itemId);
+
+            if (anyBidEverForItem)
+                return;
+
+            var item = await _db.AuctionItems.FirstOrDefaultAsync(ai => ai.Id == itemId);
+            if (item == null) return;
+
+            // Mark as passed and move on
+            item.Status = AuctionItemStatus.Passed;
+            await _db.SaveChangesAsync();
+
+            await AdvanceInternal(auctionId, state);
+        }
+
         private async Task AdvanceInternal(Guid auctionId, AuctionLiveState state)
         {
             var auction = await _db.Auctions
@@ -252,53 +257,68 @@ namespace backend.Services
                         .ThenInclude(p => p.Species)
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
 
-            if (auction == null)
-            {
-                // Als de veiling niet (meer) bestaat, doen we niets.
-                return;
-            }
+            if (auction == null) return;
 
-            // Bepaal de lijst van items en kies het volgende item.
             var items = auction.AuctionItems
                 .OrderBy(ai => ai.Status == AuctionItemStatus.Pending ? 0 : 1)
                 .ThenBy(ai => ai.Id)
                 .ToList();
 
-            var nextId = PickNextItemId(items, state.CurrentAuctionItemId);
+            var nextId = PickNextItemId(items);
+
             state.CurrentAuctionItemId = nextId;
             state.RoundIndex = 1;
             state.RoundStartedAtUtc = DateTime.UtcNow;
 
             if (nextId is null)
             {
-                // Geen volgend item meer: veiling is klaar.
                 state.IsRunning = false;
-
                 auction.Status = "Ended";
                 await _db.SaveChangesAsync();
+                return;
             }
+
+            var nextItem = items.First(x => x.Id == nextId.Value);
+
+            // set status to Live when it becomes current
+            if (nextItem.Status == AuctionItemStatus.Pending)
+                nextItem.Status = AuctionItemStatus.Live;
+
+            // pricing from product (Round 1 starts with original min again)
+            state.StartingPrice = nextItem.Product.StartPrice;
+            state.MinPrice = nextItem.Product.MinPrice;
+
+            await _db.SaveChangesAsync();
         }
 
-        // Berekent het ID van het volgende item op basis van de huidige lijst en het huidige item.
-        private static Guid? PickNextItemId(List<AuctionItem> items, Guid? currentId)
+        private static Guid? PickNextItemId(List<AuctionItem> items)
         {
-            if (items.Count == 0) return null;
-
-            var remaining = items
+            return items
                 .Where(x => x.Status == AuctionItemStatus.Pending)
                 .OrderBy(x => x.Id)
-                .ToList();
-
-            return remaining.FirstOrDefault()?.Id;
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefault();
         }
 
-        // Stelt een LiveAuctionDto samen met de actuele status van de veiling, inclusief het huidige item en de huidige prijs.
-        // We berekenen de huidige prijs op basis van de verstreken tijd en de daling per seconde (een klassieke Dutch auction).
+        private static decimal ComputeCurrentPrice(AuctionLiveState state, DateTime nowUtc)
+        {
+            var elapsedSeconds = (nowUtc - state.RoundStartedAtUtc).TotalSeconds;
+            if (elapsedSeconds < 0) elapsedSeconds = 0;
+
+            var start = state.StartingPrice;
+            var min = state.MinPrice;
+
+            // exponential decay: start * e^(-k*t)
+            var k = (double)state.DecayPerSecond;
+            var price = (decimal)((double)start * Math.Exp(-k * elapsedSeconds));
+
+            return Math.Max(min, price);
+        }
+
         private async Task<LiveAuctionDto> BuildLiveDto(Guid auctionId, AuctionLiveState state)
         {
             var now = DateTime.UtcNow;
 
-            // Haal de veiling inclusief items en productgegevens op (zonder tracking, we gaan niets wijzigen).
             var auction = await _db.Auctions
                 .AsNoTracking()
                 .Include(a => a.AuctionItems)
@@ -308,7 +328,6 @@ namespace backend.Services
 
             if (auction == null)
             {
-                // Als de veiling niet (meer) bestaat, geven we de huidige state terug zodat de frontend iets ziet.
                 return new LiveAuctionDto
                 {
                     AuctionId = auctionId,
@@ -316,31 +335,28 @@ namespace backend.Services
                     ServerTimeUtc = now,
                     RoundIndex = state.RoundIndex,
                     MaxRounds = state.MaxRounds,
-                    RoundStartedAtUtc = state.RoundStartedAtUtc
+                    RoundStartedAtUtc = state.RoundStartedAtUtc,
+                    StartingPrice = state.StartingPrice,
+                    MinPrice = state.MinPrice,
+                    DecayPerSecond = state.DecayPerSecond,
+                    CurrentPrice = ComputeCurrentPrice(state, now),
+                    AuctionItemId = state.CurrentAuctionItemId,
+                    Product = null,
+                    NextAuctionItemId = null
                 };
             }
 
-            // Sorteer items zodat we consistent door de lijst lopen.
             var items = auction.AuctionItems
                 .OrderBy(ai => ai.Status == AuctionItemStatus.Pending ? 0 : 1)
                 .ThenBy(ai => ai.Id)
                 .ToList();
 
-            // Bepaal het huidige item (object) en het volgende item-ID.
             AuctionItem? current = null;
             if (state.CurrentAuctionItemId.HasValue)
-            {
                 current = items.FirstOrDefault(x => x.Id == state.CurrentAuctionItemId.Value);
-            }
-            var nextId = (current == null) ? null : PickNextItemId(items, current.Id);
 
-            // Bereken de huidige prijs: startprijs - (verstreken seconden * daling per seconde), niet lager dan de minimumprijs.
-            var minPrice = current?.Product.MinPrice ?? 0m;
-            var elapsedSeconds = (decimal)(now - state.RoundStartedAtUtc).TotalSeconds;
-            var rawPrice = state.StartingPrice - (elapsedSeconds * state.DecrementPerSecond);
-            var currentPrice = Math.Max(minPrice, rawPrice);
+            var nextId = PickNextItemId(items);
 
-            // Stel het LiveAuctionDto object samen met alle relevante informatie.
             return new LiveAuctionDto
             {
                 AuctionId = auctionId,
@@ -352,9 +368,9 @@ namespace backend.Services
                 RoundStartedAtUtc = state.RoundStartedAtUtc,
 
                 StartingPrice = state.StartingPrice,
-                MinPrice = minPrice,
-                DecrementPerSecond = state.DecrementPerSecond,
-                CurrentPrice = currentPrice,
+                MinPrice = state.MinPrice,
+                DecayPerSecond = state.DecayPerSecond,
+                CurrentPrice = ComputeCurrentPrice(state, now),
 
                 AuctionItemId = current?.Id,
                 Product = current == null ? null : new ProductLiveDto
@@ -365,7 +381,7 @@ namespace backend.Services
                     Species = current.Product.Species?.LatinName ?? "Plant",
                     StemLength = current.Product.StemLength,
                     Quantity = current.Product.Quantity,
-                    MinPrice = current.Product.MinPrice,
+                    MinPrice = current.Product.MinPrice, // product min (for product info; UI can ignore)
                     PotSize = current.Product.PotSize
                 },
 

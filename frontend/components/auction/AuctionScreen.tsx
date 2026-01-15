@@ -1,4 +1,3 @@
-// components/auction/AuctionScreen.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +31,7 @@ type LiveAuctionState = {
 
   startingPrice: number;
   minPrice: number;
-  decrementPerSecond: number;
+  decayPerSecond: number;
   currentPrice: number;
 
   auctionItemId: string | null;
@@ -60,13 +59,15 @@ export default function AuctionScreen({ auctionId }: Props) {
   const [startAuctionError, setStartAuctionError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // serverTime - clientNow (ms). Use it to make countdown consistent.
   const serverOffsetMsRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
-  // Initial load + polling
+
   useEffect(() => {
+    if (!baseUrl) return;
+
     let cancelled = false;
+
     async function fetchLive(): Promise<LiveAuctionState> {
       const res = await fetch(`${baseUrl}/auctions/${auctionId}/live`, {
         method: "GET",
@@ -81,7 +82,6 @@ export default function AuctionScreen({ auctionId }: Props) {
 
       const data = (await res.json()) as LiveAuctionState;
 
-      // compute offset
       if (data.serverTimeUtc) {
         const serverMs = parseUtcMs(data.serverTimeUtc);
         const clientMs = Date.now();
@@ -111,8 +111,7 @@ export default function AuctionScreen({ auctionId }: Props) {
         .then((data) => {
           if (!cancelled) setLive(data);
         })
-        .catch(() => {
-        });
+        .catch(() => {});
     }, 2000);
 
     return () => {
@@ -122,9 +121,10 @@ export default function AuctionScreen({ auctionId }: Props) {
     };
   }, [auctionId, baseUrl]);
 
+  // Smooth price tick (matches backend exponential decay)
   useEffect(() => {
     function tick() {
-      if (live?.status !== "running" || !live.roundStartedAtUtc) {
+      if (!live || live.status !== "running") {
         setDisplayPrice(live?.currentPrice ?? 0);
         rafRef.current = requestAnimationFrame(tick);
         return;
@@ -134,10 +134,10 @@ export default function AuctionScreen({ auctionId }: Props) {
       const startedMs = parseUtcMs(live.roundStartedAtUtc);
       const elapsedSeconds = Math.max(0, (nowMs - startedMs) / 1000);
 
-      const raw = live.startingPrice - elapsedSeconds * live.decrementPerSecond;
+      const raw = live.startingPrice * Math.exp(-live.decayPerSecond * elapsedSeconds);
       const computed = Math.max(live.minPrice, raw);
-      const formattedNum = Number(computed.toFixed(2));
-      setDisplayPrice(formattedNum);
+      setDisplayPrice(Number(computed.toFixed(2)));
+
       rafRef.current = requestAnimationFrame(tick);
     }
 
@@ -149,7 +149,7 @@ export default function AuctionScreen({ auctionId }: Props) {
   }, [live]);
 
   async function placeBid(quantity: number) {
-    if (!live?.auctionItemId) return;
+    if (!live?.auctionItemId || !baseUrl) return;
 
     const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/bid`, {
       method: "POST",
@@ -167,7 +167,6 @@ export default function AuctionScreen({ auctionId }: Props) {
     }
 
     const data = (await res.json()) as { accepted: boolean; acceptedPrice: number; state: LiveAuctionState };
-    // Update state immediately (don’t wait for poll)
     setLive(data.state);
   }
 
@@ -184,16 +183,9 @@ export default function AuctionScreen({ auctionId }: Props) {
         { label: "Species", value: p.species },
         { label: "Stem length (height)", value: `${p.stemLength}` },
         { label: "Quantity", value: `${p.quantity}` },
-        { label: "Minimum price", value: `€${p.minPrice}` },
         { label: "Pot size", value: p.potSize },
       ],
     };
-  }, [live]);
-
-  const roundLabel = useMemo(() => {
-    const idx = live?.roundIndex ?? 0;
-    const max = live?.maxRounds ?? 3;
-    return idx > 0 ? `Round ${idx}/${max}` : `Round -/${max}`;
   }, [live]);
 
   const showNext = Boolean(live?.nextAuctionItemId);
@@ -210,7 +202,7 @@ export default function AuctionScreen({ auctionId }: Props) {
       <>
         <section className="flex flex-col items-center justify-center h-[calc(100vh-120px)] px-4 text-center space-y-6">
           <div className="text-xl font-semibold text-neutral-800">
-            This auction has not, started yet, or there are no items to display.
+            This auction has not started yet, or there are no items to display.
           </div>
           <a
             href="/auctions"
@@ -219,46 +211,48 @@ export default function AuctionScreen({ auctionId }: Props) {
             Back to Auctions
           </a>
         </section>
+
         <RoleGate allow={["auctioneer"]}>
-          {/* Auctioneer Dashboard */}
           <div className="w-full mt-10">
             <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
               <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
+
               {startAuctionError && (
                 <div className="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
                   {startAuctionError}
                 </div>
               )}
-            <button
-              onClick={async () => {
-                setStartAuctionError(null);
-                try {
-                  const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                  });
 
-                  if (!res.ok) {
-                    const text = await res.text().catch(() => "");
-                    throw new Error(text || `Failed to start auction (${res.status})`);
+              <button
+                onClick={async () => {
+                  if (!baseUrl) return;
+
+                  setStartAuctionError(null);
+                  try {
+                    const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
+                      method: "POST",
+                      credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                    });
+
+                    if (!res.ok) {
+                      const text = await res.text().catch(() => "");
+                      throw new Error(text || `Failed to start auction (${res.status})`);
+                    }
+
+                    const data = await res.json();
+                    setLive(data);
+                  } catch (err) {
+                    setStartAuctionError(err instanceof Error ? err.message : "Failed to start auction.");
                   }
-
-                  console.log("Auction started!");
-                  const data = await res.json();
-                  setLive(data);
-                } catch (error) {
-                  console.error("Error starting auction:", error);
-                  setStartAuctionError(error instanceof Error ? error.message : "Failed to start auction.");
-                }
-              }}
+                }}
                 className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"
               >
                 Start Auction
               </button>
             </div>
           </div>
-        </RoleGate> 
+        </RoleGate>
       </>
     );
   }
@@ -268,43 +262,31 @@ export default function AuctionScreen({ auctionId }: Props) {
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           {isLoading && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              Loading live auction...
-            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">Loading live auction...</div>
           )}
 
           {!isLoading && error && (
-            <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 shadow-sm">
-              {error}
-            </div>
+            <div className="rounded-2xl border border-red-200 bg-white p-6 text-sm text-red-700 shadow-sm">{error}</div>
           )}
 
           {!isLoading && !error && productCard && (
-            <ProductOverviewCard
-              title={productCard.title}
-              imageUrl={productCard.imageUrl}
-              extraInfo={productCard.extraInfo}
-            />
+            <ProductOverviewCard title={productCard.title} imageUrl={productCard.imageUrl} extraInfo={productCard.extraInfo} />
           )}
         </div>
 
-        {productCard && (
+        {productCard && live ? (
           <div className="lg:col-span-4">
             <div className="space-y-6">
               <BidPanel
-                roundLabel={roundLabel}
-                startingOffer={live?.startingPrice ?? 0}
-                currentPrice={Number.isFinite(displayPrice) ? displayPrice : live?.currentPrice ?? 0}
-                currency={"€"}
-                onPlaceBid={(qty) => {
-                  placeBid(qty)
-                    .then(() => console.log("Bid OK"))
-                    .catch((e) => {
-                      console.error("Bid failed:", e);
-                    });
-                }}
+                roundLabel={`Round ${live.roundIndex}/${live.maxRounds}`}
+                startingOffer={live.startingPrice}
+                currentPrice={displayPrice}
+                minPrice={live.minPrice}
+                showMinPrice={live.roundIndex > 1}
+                onPlaceBid={(qty) => placeBid(qty)}
               />
-              {live?.product?.id ? (
+
+              {live.product?.id ? (
                 <button
                   type="button"
                   onClick={() => setHistoryOpen(true)}
@@ -314,7 +296,6 @@ export default function AuctionScreen({ auctionId }: Props) {
                 </button>
               ) : null}
 
-
               {showNext ? (
                 <NextProductCard
                   title={nextPlaceholder.title}
@@ -322,27 +303,29 @@ export default function AuctionScreen({ auctionId }: Props) {
                   species={nextPlaceholder.species}
                   minimumPrice={nextPlaceholder.minimumPrice}
                   quantity={nextPlaceholder.quantity}
-                  onNext={() => {
-                    console.log("Next product:", live?.nextAuctionItemId);
-                  }}
+                  onNext={() => {}}
                 />
               ) : null}
             </div>
           </div>
-        )}
+        ) : null}
       </section>
-        <RoleGate allow={["auctioneer"]}>
-        {/* Auctioneer Dashboard */}
+
+      <RoleGate allow={["auctioneer"]}>
         <div className="w-full mt-10">
           <div className="rounded-2xl border border-neutral-300 bg-white p-6 shadow-sm max-w-7xl mx-auto">
             <h2 className="text-lg font-semibold mb-4 text-neutral-800">Auctioneer Dashboard</h2>
+
             {startAuctionError && (
               <div className="mb-4 px-4 py-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
                 {startAuctionError}
               </div>
             )}
+
             <button
               onClick={async () => {
+                if (!baseUrl) return;
+
                 setStartAuctionError(null);
                 try {
                   const res = await fetch(`${baseUrl}/auctions/${auctionId}/live/start`, {
@@ -356,12 +339,10 @@ export default function AuctionScreen({ auctionId }: Props) {
                     throw new Error(text || `Failed to start auction (${res.status})`);
                   }
 
-                  console.log("Auction started!");
                   const data = await res.json();
                   setLive(data);
-                } catch (error) {
-                  console.error("Error starting auction:", error);
-                  setStartAuctionError(error instanceof Error ? error.message : "Failed to start auction.");
+                } catch (err) {
+                  setStartAuctionError(err instanceof Error ? err.message : "Failed to start auction.");
                 }
               }}
               className="px-5 py-2 rounded-md bg-green-600 text-white font-medium hover:bg-green-500 transition"
@@ -371,12 +352,9 @@ export default function AuctionScreen({ auctionId }: Props) {
           </div>
         </div>
       </RoleGate>
+
       {live?.product?.id ? (
-        <PriceHistoryPopup
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          productId={live.product.id}
-        />
+        <PriceHistoryPopup open={historyOpen} onClose={() => setHistoryOpen(false)} productId={live.product.id} />
       ) : null}
     </>
   );

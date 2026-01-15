@@ -1,4 +1,3 @@
-// components/auction/BidPanel.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -7,15 +6,25 @@ type Props = {
   roundLabel: string;
   startingOffer: number;
   currentPrice: number;
+  minPrice: number;
+  showMinPrice: boolean;
   currency?: string;
   onPlaceBid: (quantity: number) => void;
 };
 
 function formatMoney(currency: string, value: number) {
-  return `${currency}${value}`;
+  return `${currency}${value.toFixed(2)}`;
 }
 
-export default function BidPanel({ roundLabel, startingOffer, currentPrice, currency = "€", onPlaceBid }: Props) {
+export default function BidPanel({
+  roundLabel,
+  startingOffer,
+  currentPrice,
+  minPrice,
+  showMinPrice,
+  currency = "€",
+  onPlaceBid,
+}: Props) {
   const [quantity, setQuantity] = useState<string>("");
 
   const progress = useMemo(() => {
@@ -28,8 +37,6 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
     const parsed = Number(quantity);
 
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      console.log("Invalid quantity:", quantity);
-
       return;
     }
 
@@ -51,6 +58,13 @@ export default function BidPanel({ roundLabel, startingOffer, currentPrice, curr
           <div className="mt-1 text-sm font-semibold text-neutral-900">{formatMoney(currency, currentPrice)}</div>
         </div>
       </div>
+
+      {showMinPrice ? (
+        <div className="mt-3 text-xs text-neutral-600">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Current minimum</div>
+          <div className="mt-1 text-sm font-semibold text-neutral-900">{formatMoney(currency, minPrice)}</div>
+        </div>
+      ) : null}
 
       <div className="mt-3">
         <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">

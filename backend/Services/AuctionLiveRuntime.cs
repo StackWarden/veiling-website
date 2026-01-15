@@ -8,13 +8,19 @@ public class AuctionLiveState
 
     public Guid? CurrentAuctionItemId { get; set; }
 
-    public int RoundIndex { get; set; } = 1;     // 1..MaxRounds
+    // Only increases when a bid is placed
+    public int RoundIndex { get; set; } = 1;
     public int MaxRounds { get; set; } = 3;
 
     public DateTime RoundStartedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public decimal StartingPrice { get; set; } = 300m;
-    public decimal DecrementPerSecond { get; set; } = 1m;
+    // Per item pricing
+    public decimal StartingPrice { get; set; }
+    public decimal MinPrice { get; set; } // dynamic min (Round 1 = product min, Round 2+ = first bid price, etc.)
+
+    // Percentage decay per second (exponential)
+    // Example: 0.02 => ~2% per second exponential decay
+    public decimal DecayPerSecond { get; set; } = 0.02m;
 
     public bool IsRunning { get; set; } = false;
 }
@@ -38,9 +44,10 @@ public class AuctionLiveRuntime : IAuctionLiveRuntime
             IsRunning = false,
             RoundIndex = 1,
             MaxRounds = 3,
-            StartingPrice = 300m,
-            DecrementPerSecond = 1m,
-            RoundStartedAtUtc = DateTime.UtcNow
+            RoundStartedAtUtc = DateTime.UtcNow,
+            StartingPrice = 0m,
+            MinPrice = 0m,
+            DecayPerSecond = 0.02m
         });
     }
 
